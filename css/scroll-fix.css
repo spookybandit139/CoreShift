@@ -1,0 +1,103 @@
+html,
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+body {
+  overscroll-behavior: none;
+}
+
+.app-shell {
+  width: 100%;
+  height: 100vh;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar,
+.main-content {
+  min-width: 0;
+  min-height: 0;
+}
+
+.main-content {
+  display: block;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  padding-bottom: 72px !important;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.main-content > .panel.visible {
+  min-width: 0;
+  min-height: min-content;
+  padding-bottom: 24px;
+}
+
+.sidebar {
+  overflow: hidden;
+}
+
+.sidebar nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.sidebar-footer {
+  flex: 0 0 auto;
+  margin-top: 8px;
+}
+
+.main-content::-webkit-scrollbar,
+.sidebar nav::-webkit-scrollbar,
+#panel-pia *::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.main-content::-webkit-scrollbar-track,
+.sidebar nav::-webkit-scrollbar-track,
+#panel-pia *::-webkit-scrollbar-track {
+  background: rgba(8, 13, 20, 0.72);
+}
+
+.main-content::-webkit-scrollbar-thumb,
+.sidebar nav::-webkit-scrollbar-thumb,
+#panel-pia *::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(8, 13, 20, 0.72);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.78), rgba(var(--accent-rgb), 0.34));
+}
+
+.main-content::-webkit-scrollbar-thumb:hover,
+.sidebar nav::-webkit-scrollbar-thumb:hover,
+#panel-pia *::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-content {
+    scroll-behavior: auto;
+  }
+}
+
+/* Keep short Settings cards, especially Capture & overlay, from stretching to the tallest card in their row. */
+.settings-grid {
+  align-items: start;
+}
+
+.settings-grid .settings {
+  min-height: 0;
+  align-self: start;
+}

@@ -1,0 +1,612 @@
+'use strict';
+
+const {
+  ActivityType,
+  Client,
+  Colors,
+  EmbedBuilder,
+  Events,
+  GatewayIntentBits,
+  InteractionContextType,
+  PermissionFlagsBits,
+  REST,
+  Routes,
+  SlashCommandBuilder
+} = require('discord.js');
+
+const APPLICATION_ID = '1414846841371099156';
+const INVITE_PERMISSIONS = '84992';
+const IPC_CHANNELS = [
+  'bot:status',
+  'bot:config:save',
+  'bot:start',
+  'bot:stop',
+  'bot:invite',
+  'bot:commands:register',
+  'bot:commands:inspect'
+];
+const CHALLENGES = [
+  'Turn a 20-second raw clip into a dramatic trailer using only three cuts.',
+  'Create the cleanest vertical 9:16 highlight from ordinary gameplay.',
+  'Make a funny fail edit with one caption and no more than eight seconds.',
+  'Record a before-and-after FPS comparison using the same game location.',
+  'Design a crosshair, win a match with it, and submit the resulting clip.',
+  'Create a cinematic clip using only color grading and slow motion.',
+  'Capture a clutch moment and edit it so the final video is under 12 seconds.',
+  'Produce a game clip whose audio tells the story before the video does.'
+];
+
+const guildOnly = builder => builder.setContexts(InteractionContextType.Guild);
+const COMMANDS = [
+  new SlashCommandBuilder().setName('help').setDescription('Show every CoreShift bot command'),
+  new SlashCommandBuilder().setName('ping').setDescription('Check CoreShift bot and Discord gateway latency'),
+  new SlashCommandBuilder().setName('status').setDescription('Show bot, database, and command status'),
+  new SlashCommandBuilder().setName('coreshift').setDescription('Show CoreShift download and feature information'),
+  new SlashCommandBuilder().setName('invite').setDescription('Get the official CoreShift bot invite'),
+  guildOnly(new SlashCommandBuilder().setName('server').setDescription('Show a quick server operations snapshot')),
+  guildOnly(new SlashCommandBuilder().setName('roles').setDescription('List the server roles and member counts')),
+  new SlashCommandBuilder().setName('avatar').setDescription('Show a Discord user avatar')
+    .addUserOption(option => option.setName('user').setDescription('User to view')),
+  new SlashCommandBuilder().setName('userinfo').setDescription('Show useful information about a Discord user')
+    .addUserOption(option => option.setName('user').setDescription('User to inspect')),
+  new SlashCommandBuilder().setName('choose').setDescription('Choose one item from a comma-separated list')
+    .addStringOption(option => option.setName('options').setDescription('Example: JavaScript, Python, Rust').setRequired(true).setMinLength(3).setMaxLength(500)),
+  new SlashCommandBuilder().setName('random').setDescription('Generate a random whole number')
+    .addIntegerOption(option => option.setName('minimum').setDescription('Lowest possible value').setRequired(true).setMinValue(-1000000).setMaxValue(1000000))
+    .addIntegerOption(option => option.setName('maximum').setDescription('Highest possible value').setRequired(true).setMinValue(-1000000).setMaxValue(1000000)),
+  new SlashCommandBuilder().setName('fpsguide').setDescription('Get safe performance suggestions for a game')
+    .addStringOption(option => option.setName('game').setDescription('Game name').setRequired(true).setMaxLength(80)),
+  new SlashCommandBuilder().setName('clipchallenge').setDescription('Reveal this week\'s CoreShift editing challenge'),
+  guildOnly(new SlashCommandBuilder().setName('remind').setDescription('Save a MySQL-backed reminder in this channel')
+    .addIntegerOption(option => option.setName('minutes').setDescription('Minutes from now, up to seven days').setRequired(true).setMinValue(1).setMaxValue(10080))
+    .addStringOption(option => option.setName('message').setDescription('Reminder text').setRequired(true).setMaxLength(500))),
+  guildOnly(new SlashCommandBuilder().setName('suggest').setDescription('Save a community suggestion to CoreShift MySQL')
+    .addStringOption(option => option.setName('idea').setDescription('Your suggestion').setRequired(true).setMinLength(3).setMaxLength(1000))),
+  guildOnly(new SlashCommandBuilder().setName('suggestions').setDescription('Show the latest community suggestions')),
+  guildOnly(new SlashCommandBuilder().setName('clipshare').setDescription('Save a gameplay clip link for the community')
+    .addStringOption(option => option.setName('url').setDescription('HTTPS link to the clip').setRequired(true).setMaxLength(1000))
+    .addStringOption(option => option.setName('game').setDescription('Game title').setMaxLength(80))
+    .addStringOption(option => option.setName('caption').setDescription('Short description').setMaxLength(300))),
+  guildOnly(new SlashCommandBuilder().setName('clips').setDescription('Show recently shared community clips')),
+  guildOnly(new SlashCommandBuilder().setName('mission').setDescription('View or manage the server\'s active community mission')
+    .addSubcommand(command => command.setName('view').setDescription('View the active server mission'))
+    .addSubcommand(command => command.setName('create').setDescription('Create a new mission (Manage Server required)')
+      .addStringOption(option => option.setName('title').setDescription('Mission title').setRequired(true).setMaxLength(100))
+      .addStringOption(option => option.setName('description').setDescription('What members need to accomplish').setRequired(true).setMaxLength(1000))
+      .addStringOption(option => option.setName('reward').setDescription('Role, points, recognition, or prize').setMaxLength(200)))
+    .addSubcommand(command => command.setName('close').setDescription('Close the current mission (Manage Server required)'))),
+  guildOnly(new SlashCommandBuilder().setName('benchmark').setDescription('Submit or view community FPS benchmark results')
+    .addSubcommand(command => command.setName('submit').setDescription('Submit a before-and-after FPS result')
+      .addStringOption(option => option.setName('game').setDescription('Game tested').setRequired(true).setMaxLength(80))
+      .addIntegerOption(option => option.setName('before').setDescription('FPS before changes').setRequired(true).setMinValue(1).setMaxValue(2000))
+      .addIntegerOption(option => option.setName('after').setDescription('FPS after changes').setRequired(true).setMinValue(1).setMaxValue(2000))
+      .addStringOption(option => option.setName('notes').setDescription('Settings or changes tested').setMaxLength(400)))
+    .addSubcommand(command => command.setName('leaderboard').setDescription('Show the largest verified FPS improvements')
+      .addStringOption(option => option.setName('game').setDescription('Optional game filter').setMaxLength(80))))
+].map(command => command.toJSON());
+const COMMAND_NAMES = COMMANDS.map(command => command.name);
+const FORBIDDEN_COMMAND_NAMES = Object.freeze([
+  'clearserver', 'nuke', 'purge', 'wipe', 'deletechannels', 'deleteroles',
+  'banall', 'kickall', 'massban', 'masskick', 'shutdown', 'eval', 'exec', 'execute'
+]);
+function isDestructiveCommandName(name) {
+  const normalized = String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return FORBIDDEN_COMMAND_NAMES.includes(normalized);
+}
+if (COMMAND_NAMES.some(isDestructiveCommandName)) throw new Error('CoreShift safe command registry contains a forbidden destructive command.');
+
+function registerDiscordBot({ ipcMain, BrowserWindow, app, fs, path, safeStorage, getSettings, saveSettings, getDbConnection, getActiveAccount, ownerUsername }) {
+  for (const channel of IPC_CHANNELS) ipcMain.removeHandler(channel);
+  let client = null;
+  let starting = false;
+  let reminderTimer = null;
+  let status = {
+    state: 'stopped',
+    connected: false,
+    commandCount: COMMANDS.length,
+    guildCount: 0,
+    userTag: '',
+    sync: null,
+    message: 'CoreShift bot is stopped.'
+  };
+
+  function tokenPath() { return path.join(app.getPath('userData'), 'discord-bot-token.dat'); }
+  function getConfig() {
+    const value = getSettings().discordBot || {};
+    return {
+      enabled: Boolean(value.enabled),
+      applicationId: APPLICATION_ID,
+      testGuildId: /^\d{16,22}$/.test(String(value.testGuildId || '').trim()) ? String(value.testGuildId).trim() : '',
+      hasToken: fs.existsSync(tokenPath()),
+      expectedCommands: COMMAND_NAMES
+    };
+  }
+  function requireOwner() {
+    if (getActiveAccount()?.username?.toLowerCase() !== String(ownerUsername).toLowerCase()) throw new Error('Only Spookybandit139 can manage the Discord bot.');
+  }
+  function broadcast(next) {
+    status = { ...status, ...next };
+    for (const window of BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send('bot:statusChanged', status);
+    return status;
+  }
+  function saveToken(token) {
+    const cleaned = String(token || '').trim();
+    if (!cleaned) return;
+    if (cleaned.length < 40 || !/^[A-Za-z0-9._-]+$/.test(cleaned)) throw new Error('That does not look like a Discord bot token.');
+    const encodedId = cleaned.split('.')[0];
+    try {
+      const tokenApplicationId = Buffer.from(encodedId, 'base64url').toString('utf8');
+      if (/^\d{16,22}$/.test(tokenApplicationId) && tokenApplicationId !== APPLICATION_ID) throw new Error('This token belongs to a different Discord application.');
+    } catch (error) {
+      if (/different Discord application/i.test(error.message)) throw error;
+    }
+    if (!safeStorage.isEncryptionAvailable()) throw new Error('Windows encryption is unavailable, so CoreShift will not save the bot token.');
+    fs.writeFileSync(tokenPath(), safeStorage.encryptString(cleaned), { mode: 0o600 });
+  }
+  function readToken() {
+    try {
+      if (!safeStorage.isEncryptionAvailable()) return '';
+      return safeStorage.decryptString(fs.readFileSync(tokenPath()));
+    } catch { return ''; }
+  }
+  function inviteUrl() {
+    return 'https://discord.com/oauth2/authorize?client_id=' + APPLICATION_ID + '&permissions=' + INVITE_PERMISSIONS + '&integration_type=0&scope=bot%20applications.commands';
+  }
+  async function saveConfig(payload) {
+    requireOwner();
+    if (payload?.token) saveToken(payload.token);
+    const current = getSettings();
+    const config = {
+      enabled: Boolean(payload?.enabled),
+      applicationId: APPLICATION_ID,
+      testGuildId: /^\d{16,22}$/.test(String(payload?.testGuildId || '').trim()) ? String(payload.testGuildId).trim() : ''
+    };
+    saveSettings({ ...current, discordBot: config });
+    return { success: true, config: { ...config, hasToken: Boolean(readToken()), expectedCommands: COMMAND_NAMES }, message: 'Discord bot settings saved securely on this Windows account.' };
+  }
+  async function syncCommands(token, config, connectedGuildIds = []) {
+    const rest = new REST({ version: '10' }).setToken(token);
+    broadcast({ state: 'registering', message: 'Publishing the complete global command set...' });
+    const globalResult = await rest.put(Routes.applicationCommands(APPLICATION_ID), { body: COMMANDS });
+    let guildResult = [];
+    let guildError = '';
+    if (config.testGuildId) {
+      broadcast({ state: 'registering', message: 'Global commands published. Mirroring commands to the test server...' });
+      try {
+        guildResult = await rest.put(Routes.applicationGuildCommands(APPLICATION_ID, config.testGuildId), { body: COMMANDS });
+      } catch (error) { guildError = cleanDiscordError(error); }
+    }
+    const cleanup = { scopesCleared: 0, commandsRemoved: 0, errors: [] };
+    const guildIds = [...new Set(connectedGuildIds.map(String).filter(id => /^\d{16,22}$/.test(id)))];
+    for (const guildId of guildIds) {
+      if (guildId === config.testGuildId) continue;
+      try {
+        const route = Routes.applicationGuildCommands(APPLICATION_ID, guildId);
+        const existing = await rest.get(route);
+        if (Array.isArray(existing) && existing.length) {
+          await rest.put(route, { body: [] });
+          cleanup.scopesCleared++;
+          cleanup.commandsRemoved += existing.length;
+        }
+      } catch (error) { cleanup.errors.push(cleanDiscordError(error)); }
+    }
+    const sync = {
+      expectedCount: COMMANDS.length,
+      globalCount: Array.isArray(globalResult) ? globalResult.length : COMMANDS.length,
+      guildCount: Array.isArray(guildResult) ? guildResult.length : 0,
+      testGuildId: config.testGuildId,
+      guildError,
+      cleanup
+    };
+    broadcast({ sync, commandCount: sync.globalCount, message: syncMessage(sync) });
+    return sync;
+  }
+  async function inspectCommands(token, config) {
+    const rest = new REST({ version: '10' }).setToken(token);
+    const globalCommands = await rest.get(Routes.applicationCommands(APPLICATION_ID));
+    let guildCommands = [];
+    let guildError = '';
+    if (config.testGuildId) {
+      try { guildCommands = await rest.get(Routes.applicationGuildCommands(APPLICATION_ID, config.testGuildId)); }
+      catch (error) { guildError = cleanDiscordError(error); }
+    }
+    const globalNames = Array.isArray(globalCommands) ? globalCommands.map(command => command.name).sort() : [];
+    const guildNames = Array.isArray(guildCommands) ? guildCommands.map(command => command.name).sort() : [];
+    return {
+      expected: COMMAND_NAMES,
+      globalNames,
+      guildNames,
+      missingGlobal: COMMAND_NAMES.filter(name => !globalNames.includes(name)),
+      missingGuild: config.testGuildId ? COMMAND_NAMES.filter(name => !guildNames.includes(name)) : [],
+      forbiddenGlobal: globalNames.filter(isDestructiveCommandName),
+      forbiddenGuild: guildNames.filter(isDestructiveCommandName),
+      testGuildId: config.testGuildId,
+      guildError
+    };
+  }
+  function startReminderWorker(nextClient) {
+    if (reminderTimer) clearInterval(reminderTimer);
+    const deliver = () => deliverDueReminders(nextClient, getDbConnection).catch(error => console.error('Discord reminder worker:', cleanError(error)));
+    reminderTimer = setInterval(deliver, 30000);
+    setTimeout(deliver, 3500);
+  }
+  function stopReminderWorker() {
+    if (reminderTimer) clearInterval(reminderTimer);
+    reminderTimer = null;
+  }
+  async function startBot() {
+    if (starting) return { success: false, status, message: 'The Discord bot is already starting.' };
+    if (client?.isReady()) return { success: true, status, message: 'The Discord bot is already online.' };
+    const token = readToken();
+    if (!token) return { success: false, status: broadcast({ state: 'error', connected: false, message: 'Add and save a newly reset Discord bot token first.' }), message: 'Add and save a newly reset Discord bot token first.' };
+    starting = true;
+    broadcast({ state: 'connecting', connected: false, message: 'Connecting CoreShift to the Discord gateway...' });
+    const config = getConfig();
+    const nextClient = new Client({ intents: [GatewayIntentBits.Guilds] });
+    client = nextClient;
+    nextClient.on(Events.InteractionCreate, interaction => handleInteraction(interaction, getDbConnection, inviteUrl, nextClient).catch(error => safeInteractionError(interaction, error)));
+    nextClient.on(Events.Error, error => broadcast({ state: 'error', connected: false, message: 'Discord bot error: ' + cleanError(error) }));
+    nextClient.on(Events.ShardDisconnect, () => broadcast({ state: 'reconnecting', connected: false, message: 'Discord disconnected. Reconnecting automatically...' }));
+    nextClient.on(Events.ShardResume, () => broadcast({ state: 'online', connected: true, message: 'CoreShift bot reconnected.' }));
+    try {
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Discord bot connection timed out.')), 20000);
+        nextClient.once(Events.ClientReady, async readyClient => {
+          clearTimeout(timeout);
+          try {
+            const sync = await syncCommands(token, config, [...readyClient.guilds.cache.keys()]);
+            readyClient.user.setActivity('CoreShift commands | /help', { type: ActivityType.Watching });
+            startReminderWorker(readyClient);
+            const warning = sync.guildError ? ' Test-server mirror warning: ' + sync.guildError : '';
+            broadcast({ state: 'online', connected: true, commandCount: sync.globalCount, guildCount: readyClient.guilds.cache.size, userTag: readyClient.user.tag, sync, message: readyClient.user.tag + ' is online with ' + sync.globalCount + ' global commands in ' + readyClient.guilds.cache.size + ' server(s).' + warning });
+            resolve();
+          } catch (error) { reject(error); }
+        });
+        nextClient.login(token).catch(reject);
+      });
+      return { success: true, status, message: status.message };
+    } catch (error) {
+      stopReminderWorker();
+      await Promise.resolve(nextClient.destroy()).catch(() => {});
+      if (client === nextClient) client = null;
+      const message = cleanDiscordError(error);
+      return { success: false, status: broadcast({ state: 'error', connected: false, message }), message };
+    } finally { starting = false; }
+  }
+  async function stopBot() {
+    stopReminderWorker();
+    if (client) await Promise.resolve(client.destroy()).catch(() => {});
+    client = null;
+    starting = false;
+    return { success: true, status: broadcast({ state: 'stopped', connected: false, guildCount: 0, userTag: '', message: 'CoreShift bot is stopped.' }), message: 'CoreShift bot stopped.' };
+  }
+
+  ipcMain.handle('bot:status', () => ({ success: true, status, config: getConfig(), inviteUrl: inviteUrl() }));
+  ipcMain.handle('bot:config:save', async (_event, payload) => {
+    try { return await saveConfig(payload); } catch (error) { return { success: false, message: cleanError(error) }; }
+  });
+  ipcMain.handle('bot:start', async () => {
+    try { requireOwner(); return await startBot(); } catch (error) { return { success: false, message: cleanError(error), status }; }
+  });
+  ipcMain.handle('bot:stop', async () => {
+    try { requireOwner(); return await stopBot(); } catch (error) { return { success: false, message: cleanError(error), status }; }
+  });
+  ipcMain.handle('bot:invite', () => ({ success: true, inviteUrl: inviteUrl() }));
+  ipcMain.handle('bot:commands:register', async () => {
+    try {
+      requireOwner();
+      const token = readToken();
+      if (!token) throw new Error('Save a newly reset Discord bot token first.');
+      const sync = await syncCommands(token, getConfig(), client?.isReady() ? [...client.guilds.cache.keys()] : []);
+      return { success: true, sync, message: syncMessage(sync) };
+    } catch (error) { return { success: false, message: cleanDiscordError(error) }; }
+  });
+  ipcMain.handle('bot:commands:inspect', async () => {
+    try {
+      requireOwner();
+      const token = readToken();
+      if (!token) throw new Error('Save a newly reset Discord bot token first.');
+      const inspection = await inspectCommands(token, getConfig());
+      return { success: true, inspection, message: inspection.missingGlobal.length ? inspection.missingGlobal.length + ' global commands are missing.' : 'Discord returned every expected global command.' };
+    } catch (error) { return { success: false, message: cleanDiscordError(error) }; }
+  });
+
+  return {
+    async autoStart() { if (getConfig().enabled && readToken()) await startBot(); },
+    async stop() { stopReminderWorker(); if (client) await Promise.resolve(client.destroy()).catch(() => {}); client = null; }
+  };
+}
+
+async function handleInteraction(interaction, getDbConnection, inviteUrl, client) {
+  if (!interaction.isChatInputCommand()) return;
+  const command = interaction.commandName;
+  if (isDestructiveCommandName(command)) return interaction.reply({ content: 'That legacy destructive command is permanently disabled in CoreShift.', ephemeral: true });
+  if (!COMMAND_NAMES.includes(command)) return interaction.reply({ content: 'That legacy command is no longer available. Use /help for the safe command deck.', ephemeral: true });
+  if (command === 'ping') {
+    const roundTrip = Math.max(0, Date.now() - interaction.createdTimestamp);
+    return interaction.reply({ embeds: [baseEmbed('CoreShift signal check', 'Gateway: **' + Math.round(client.ws.ping) + ' ms**\nInteraction: **' + roundTrip + ' ms**')], ephemeral: true });
+  }
+  if (command === 'help') {
+    return interaction.reply({ embeds: [baseEmbed('CoreShift command deck', [
+      '**Core:** /help /ping /status /coreshift /invite',
+      '**Server:** /server /roles /avatar /userinfo',
+      '**Utilities:** /choose /random /remind',
+      '**Gaming:** /fpsguide /clipchallenge /clipshare /clips',
+      '**Community:** /suggest /suggestions /mission',
+      '**Performance:** /benchmark submit /benchmark leaderboard'
+    ].join('\n\n'))] });
+  }
+  if (command === 'status') {
+    const connection = getDbConnection();
+    return interaction.reply({ embeds: [baseEmbed('CoreShift operations status', 'CoreShift bot is online and responding.')
+      .addFields(
+        { name: 'Gateway', value: Math.round(client.ws.ping) + ' ms', inline: true },
+        { name: 'MySQL', value: connection ? 'Connected' : 'Offline', inline: true },
+        { name: 'Commands', value: String(COMMANDS.length) + ' expected', inline: true },
+        { name: 'Uptime', value: formatDuration(client.uptime || 0), inline: true },
+        { name: 'Servers', value: String(client.guilds.cache.size), inline: true }
+      )], ephemeral: true });
+  }
+  if (command === 'coreshift') {
+    return interaction.reply({ embeds: [baseEmbed('CoreShift Desktop Suite', 'A Windows gaming command center with Clip Studio Ultra, instant replay, performance tools, crosshairs, diagnostics, community chat, and MySQL utilities.')
+      .addFields({ name: 'Latest release', value: '[Download CoreShift](https://github.com/spookybandit139/CoreShift/releases/latest)', inline: true }, { name: 'Bot invite', value: '[Add CoreShift Bot](' + inviteUrl() + ')', inline: true })] });
+  }
+  if (command === 'invite') return interaction.reply({ embeds: [baseEmbed('Invite CoreShift Bot', '[Add CoreShift to another server](' + inviteUrl() + ')')], ephemeral: true });
+  if (command === 'server') return handleServer(interaction);
+  if (command === 'roles') return handleRoles(interaction);
+  if (command === 'avatar') return handleAvatar(interaction);
+  if (command === 'userinfo') return handleUserInfo(interaction);
+  if (command === 'choose') return handleChoose(interaction);
+  if (command === 'random') return handleRandom(interaction);
+  if (command === 'fpsguide') return interaction.reply({ embeds: [fpsGuideEmbed(interaction.options.getString('game', true))] });
+  if (command === 'clipchallenge') {
+    const week = Math.floor(Date.now() / 604800000);
+    return interaction.reply({ embeds: [baseEmbed('Weekly Clip Operation', CHALLENGES[week % CHALLENGES.length]).addFields({ name: 'Rules', value: 'Use your own footage. Keep it under 30 seconds. Post the result in your server clip channel.' }, { name: 'Next operation', value: '<t:' + ((week + 1) * 604800) + ':R>' })] });
+  }
+  if (command === 'remind') return handleReminder(interaction, getDbConnection);
+  if (command === 'suggest') return handleSuggestion(interaction, getDbConnection);
+  if (command === 'suggestions') return handleSuggestions(interaction, getDbConnection);
+  if (command === 'clipshare') return handleClipShare(interaction, getDbConnection);
+  if (command === 'clips') return handleClips(interaction, getDbConnection);
+  if (command === 'mission') return handleMission(interaction, getDbConnection);
+  if (command === 'benchmark') return handleBenchmark(interaction, getDbConnection);
+}
+
+function handleServer(interaction) {
+  if (!interaction.guild) return interaction.reply({ content: 'Use this command inside a server.', ephemeral: true });
+  const embed = baseEmbed(interaction.guild.name + ' operations', 'CoreShift is connected and ready.')
+    .addFields(
+      { name: 'Members', value: String(interaction.guild.memberCount), inline: true },
+      { name: 'Channels', value: String(interaction.guild.channels.cache.size), inline: true },
+      { name: 'Roles', value: String(Math.max(0, interaction.guild.roles.cache.size - 1)), inline: true },
+      { name: 'Created', value: '<t:' + Math.floor(interaction.guild.createdTimestamp / 1000) + ':R>', inline: true },
+      { name: 'Boosts', value: String(interaction.guild.premiumSubscriptionCount || 0), inline: true }
+    );
+  const icon = interaction.guild.iconURL({ size: 256 });
+  if (icon) embed.setThumbnail(icon);
+  return interaction.reply({ embeds: [embed] });
+}
+function handleRoles(interaction) {
+  const roles = [...interaction.guild.roles.cache.values()]
+    .filter(role => role.id !== interaction.guildId && !role.managed)
+    .sort((a, b) => b.position - a.position)
+    .slice(0, 20);
+  const lines = roles.map(role => role.toString() + ' - ' + role.members.size + ' cached member(s)');
+  return interaction.reply({ embeds: [baseEmbed(interaction.guild.name + ' roles', lines.join('\n') || 'No custom roles were found.')], allowedMentions: { parse: [] } });
+}
+function handleAvatar(interaction) {
+  const user = interaction.options.getUser('user') || interaction.user;
+  const url = user.displayAvatarURL({ size: 1024, extension: 'png' });
+  return interaction.reply({ embeds: [baseEmbed(user.username + ' avatar', '[Open full-size avatar](' + url + ')').setImage(url)] });
+}
+function handleUserInfo(interaction) {
+  const user = interaction.options.getUser('user') || interaction.user;
+  const member = interaction.options.getMember('user') || (user.id === interaction.user.id ? interaction.member : null);
+  const embed = baseEmbed('User: ' + user.username, 'Discord profile information.')
+    .setThumbnail(user.displayAvatarURL({ size: 256 }))
+    .addFields(
+      { name: 'User ID', value: user.id, inline: true },
+      { name: 'Account created', value: '<t:' + Math.floor(user.createdTimestamp / 1000) + ':R>', inline: true },
+      { name: 'Bot account', value: user.bot ? 'Yes' : 'No', inline: true }
+    );
+  if (member?.joinedTimestamp) embed.addFields({ name: 'Joined server', value: '<t:' + Math.floor(member.joinedTimestamp / 1000) + ':R>', inline: true });
+  return interaction.reply({ embeds: [embed], ephemeral: true });
+}
+function handleChoose(interaction) {
+  const options = interaction.options.getString('options', true).split(',').map(value => value.trim()).filter(Boolean).slice(0, 25);
+  if (options.length < 2) return interaction.reply({ content: 'Give me at least two comma-separated choices.', ephemeral: true });
+  const selected = options[Math.floor(Math.random() * options.length)];
+  return interaction.reply({ embeds: [baseEmbed('CoreShift chose', '**' + escapeDiscord(selected) + '**\n\nFrom: ' + options.map(escapeDiscord).join(', '))] });
+}
+function handleRandom(interaction) {
+  const minimum = interaction.options.getInteger('minimum', true);
+  const maximum = interaction.options.getInteger('maximum', true);
+  if (minimum > maximum) return interaction.reply({ content: 'Minimum must be less than or equal to maximum.', ephemeral: true });
+  const result = Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
+  return interaction.reply({ embeds: [baseEmbed('Random number', '**' + result + '**\nRange: ' + minimum + ' to ' + maximum)] });
+}
+
+async function handleReminder(interaction, getDbConnection) {
+  const connection = getDbConnection();
+  if (!connection) return mysqlOffline(interaction);
+  await interaction.deferReply({ ephemeral: true });
+  await ensureBotTables(connection);
+  const minutes = interaction.options.getInteger('minutes', true);
+  const message = interaction.options.getString('message', true);
+  const remindAt = new Date(Date.now() + minutes * 60000);
+  await connection.query('INSERT INTO discord_reminders (guild_id, channel_id, discord_user_id, reminder_text, remind_at) VALUES (?, ?, ?, ?, ?)', [interaction.guildId, interaction.channelId, interaction.user.id, message, remindAt]);
+  return interaction.editReply({ content: 'Reminder saved for <t:' + Math.floor(remindAt.getTime() / 1000) + ':F> (<t:' + Math.floor(remindAt.getTime() / 1000) + ':R>).' });
+}
+async function handleSuggestion(interaction, getDbConnection) {
+  const connection = getDbConnection();
+  if (!connection) return mysqlOffline(interaction);
+  await interaction.deferReply();
+  await ensureBotTables(connection);
+  const idea = interaction.options.getString('idea', true);
+  const [result] = await connection.query('INSERT INTO discord_suggestions (guild_id, discord_user_id, discord_username, suggestion) VALUES (?, ?, ?, ?)', [interaction.guildId, interaction.user.id, interaction.user.username, idea]);
+  return interaction.editReply({ embeds: [baseEmbed('Suggestion #' + result.insertId, idea).addFields({ name: 'Submitted by', value: interaction.user.toString() })] });
+}
+async function handleSuggestions(interaction, getDbConnection) {
+  const connection = getDbConnection();
+  if (!connection) return mysqlOffline(interaction);
+  await interaction.deferReply();
+  await ensureBotTables(connection);
+  const [rows] = await connection.query('SELECT id, discord_username, suggestion, status FROM discord_suggestions WHERE guild_id = ? ORDER BY id DESC LIMIT 8', [interaction.guildId]);
+  const lines = rows.map(row => '**#' + row.id + ' [' + escapeDiscord(row.status) + ']** ' + escapeDiscord(row.suggestion).slice(0, 240) + ' - ' + escapeDiscord(row.discord_username));
+  return interaction.editReply({ embeds: [baseEmbed('Latest community suggestions', lines.join('\n\n') || 'No suggestions yet. Use /suggest to add one.')] });
+}
+async function handleClipShare(interaction, getDbConnection) {
+  const connection = getDbConnection();
+  if (!connection) return mysqlOffline(interaction);
+  const rawUrl = interaction.options.getString('url', true);
+  let url;
+  try { url = new URL(rawUrl); } catch { return interaction.reply({ content: 'Enter a valid HTTPS clip URL.', ephemeral: true }); }
+  if (url.protocol !== 'https:') return interaction.reply({ content: 'Clip links must use HTTPS.', ephemeral: true });
+  await interaction.deferReply();
+  await ensureBotTables(connection);
+  const game = interaction.options.getString('game') || 'Unspecified game';
+  const caption = interaction.options.getString('caption') || 'No caption supplied.';
+  const [result] = await connection.query('INSERT INTO discord_shared_clips (guild_id, discord_user_id, discord_username, clip_url, game, caption) VALUES (?, ?, ?, ?, ?, ?)', [interaction.guildId, interaction.user.id, interaction.user.username, url.toString(), game, caption]);
+  return interaction.editReply({ embeds: [baseEmbed('Clip #' + result.insertId + ': ' + game, caption).addFields({ name: 'Watch', value: '[Open clip](' + url.toString() + ')', inline: true }, { name: 'Shared by', value: interaction.user.toString(), inline: true })] });
+}
+async function handleClips(interaction, getDbConnection) {
+  const connection = getDbConnection();
+  if (!connection) return mysqlOffline(interaction);
+  await interaction.deferReply();
+  await ensureBotTables(connection);
+  const [rows] = await connection.query('SELECT id, discord_username, clip_url, game, caption FROM discord_shared_clips WHERE guild_id = ? ORDER BY id DESC LIMIT 6', [interaction.guildId]);
+  const lines = rows.map(row => '**#' + row.id + ' ' + escapeDiscord(row.game) + '** - [' + escapeDiscord(row.discord_username) + '](' + row.clip_url + ')\n' + escapeDiscord(row.caption).slice(0, 220));
+  return interaction.editReply({ embeds: [baseEmbed('Recent community clips', lines.join('\n\n') || 'No clips yet. Use /clipshare to add one.')] });
+}
+
+async function handleMission(interaction, getDbConnection) {
+  const connection = getDbConnection();
+  if (!connection) return mysqlOffline(interaction);
+  await interaction.deferReply();
+  await ensureBotTables(connection);
+  const action = interaction.options.getSubcommand();
+  if (action === 'view') {
+    const [rows] = await connection.query('SELECT title, description, reward, created_at FROM discord_missions WHERE guild_id = ? AND active = 1 ORDER BY id DESC LIMIT 1', [interaction.guildId]);
+    if (!rows[0]) return interaction.editReply({ embeds: [baseEmbed('No active mission', 'A server manager can create one with /mission create.')] });
+    const mission = rows[0];
+    return interaction.editReply({ embeds: [baseEmbed(mission.title, mission.description).addFields({ name: 'Reward', value: mission.reward || 'Server recognition', inline: true }, { name: 'Launched', value: '<t:' + Math.floor(new Date(mission.created_at).getTime() / 1000) + ':R>', inline: true })] });
+  }
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) return interaction.editReply({ content: 'You need the Manage Server permission for that mission action.' });
+  if (action === 'create') {
+    const title = interaction.options.getString('title', true);
+    const description = interaction.options.getString('description', true);
+    const reward = interaction.options.getString('reward') || 'Server recognition';
+    await connection.query('UPDATE discord_missions SET active = 0 WHERE guild_id = ?', [interaction.guildId]);
+    await connection.query('INSERT INTO discord_missions (guild_id, title, description, reward, created_by_discord_id, active) VALUES (?, ?, ?, ?, ?, 1)', [interaction.guildId, title, description, reward, interaction.user.id]);
+    return interaction.editReply({ embeds: [baseEmbed('Mission launched: ' + title, description).addFields({ name: 'Reward', value: reward })] });
+  }
+  await connection.query('UPDATE discord_missions SET active = 0 WHERE guild_id = ? AND active = 1', [interaction.guildId]);
+  return interaction.editReply({ embeds: [baseEmbed('Mission closed', 'The active community mission has been archived.')] });
+}
+
+async function handleBenchmark(interaction, getDbConnection) {
+  const connection = getDbConnection();
+  if (!connection) return mysqlOffline(interaction);
+  await interaction.deferReply();
+  await ensureBotTables(connection);
+  const action = interaction.options.getSubcommand();
+  if (action === 'submit') {
+    const game = interaction.options.getString('game', true);
+    const before = interaction.options.getInteger('before', true);
+    const after = interaction.options.getInteger('after', true);
+    const notes = interaction.options.getString('notes') || '';
+    await connection.query('INSERT INTO discord_benchmarks (guild_id, discord_user_id, discord_username, game, before_fps, after_fps, notes) VALUES (?, ?, ?, ?, ?, ?, ?)', [interaction.guildId, interaction.user.id, interaction.user.username, game, before, after, notes]);
+    const difference = after - before;
+    const percent = before ? difference / before * 100 : 0;
+    return interaction.editReply({ embeds: [baseEmbed('Benchmark recorded: ' + game, '**' + before + ' FPS -> ' + after + ' FPS**').addFields({ name: 'Difference', value: (difference >= 0 ? '+' : '') + difference + ' FPS', inline: true }, { name: 'Change', value: (percent >= 0 ? '+' : '') + percent.toFixed(1) + '%', inline: true }, { name: 'Submitted by', value: interaction.user.toString(), inline: true }, { name: 'Notes', value: notes || 'No notes supplied.' })] });
+  }
+  const game = interaction.options.getString('game');
+  const params = [interaction.guildId];
+  let sql = 'SELECT discord_username, game, before_fps, after_fps FROM discord_benchmarks WHERE guild_id = ?';
+  if (game) { sql += ' AND LOWER(game) = LOWER(?)'; params.push(game); }
+  sql += ' ORDER BY (after_fps - before_fps) DESC, id DESC LIMIT 10';
+  const [rows] = await connection.query(sql, params);
+  const lines = rows.map((row, index) => {
+    const difference = Number(row.after_fps) - Number(row.before_fps);
+    return '**' + (index + 1) + '. ' + escapeDiscord(row.discord_username) + '** - ' + escapeDiscord(row.game) + ' - ' + row.before_fps + ' -> ' + row.after_fps + ' FPS (' + (difference >= 0 ? '+' : '') + difference + ')';
+  });
+  return interaction.editReply({ embeds: [baseEmbed(game ? game + ' benchmark leaderboard' : 'FPS improvement leaderboard', lines.join('\n') || 'No benchmarks have been submitted yet. Use /benchmark submit.')] });
+}
+
+async function ensureBotTables(connection) {
+  await connection.query('CREATE TABLE IF NOT EXISTS discord_missions (id INT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(32) NOT NULL, title VARCHAR(100) NOT NULL, description TEXT NOT NULL, reward VARCHAR(200), created_by_discord_id VARCHAR(32) NOT NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_discord_mission (guild_id, active))');
+  await connection.query('CREATE TABLE IF NOT EXISTS discord_benchmarks (id INT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(32) NOT NULL, discord_user_id VARCHAR(32) NOT NULL, discord_username VARCHAR(100) NOT NULL, game VARCHAR(80) NOT NULL, before_fps INT NOT NULL, after_fps INT NOT NULL, notes VARCHAR(400), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_discord_benchmark (guild_id, game))');
+  await connection.query('CREATE TABLE IF NOT EXISTS discord_reminders (id BIGINT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(32) NOT NULL, channel_id VARCHAR(32) NOT NULL, discord_user_id VARCHAR(32) NOT NULL, reminder_text VARCHAR(500) NOT NULL, remind_at DATETIME NOT NULL, delivered TINYINT NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_discord_reminder_due (delivered, remind_at))');
+  await connection.query('CREATE TABLE IF NOT EXISTS discord_suggestions (id BIGINT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(32) NOT NULL, discord_user_id VARCHAR(32) NOT NULL, discord_username VARCHAR(100) NOT NULL, suggestion TEXT NOT NULL, status VARCHAR(20) NOT NULL DEFAULT "open", created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_discord_suggestion (guild_id, id))');
+  await connection.query('CREATE TABLE IF NOT EXISTS discord_shared_clips (id BIGINT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(32) NOT NULL, discord_user_id VARCHAR(32) NOT NULL, discord_username VARCHAR(100) NOT NULL, clip_url TEXT NOT NULL, game VARCHAR(80), caption VARCHAR(300), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_discord_clips (guild_id, id))');
+}
+
+async function deliverDueReminders(client, getDbConnection) {
+  const connection = getDbConnection();
+  if (!connection || !client.isReady()) return;
+  await ensureBotTables(connection);
+  const [rows] = await connection.query('SELECT id, channel_id, discord_user_id, reminder_text FROM discord_reminders WHERE delivered = 0 AND remind_at <= NOW() ORDER BY remind_at ASC LIMIT 20');
+  for (const row of rows) {
+    const channel = await client.channels.fetch(row.channel_id).catch(() => null);
+    if (!channel?.isTextBased?.()) {
+      await connection.query('UPDATE discord_reminders SET delivered = -1 WHERE id = ?', [row.id]);
+      continue;
+    }
+    try {
+      await channel.send({ content: '<@' + row.discord_user_id + '> **Reminder:** ' + row.reminder_text, allowedMentions: { parse: [], users: [row.discord_user_id], roles: [] } });
+      await connection.query('UPDATE discord_reminders SET delivered = 1 WHERE id = ?', [row.id]);
+    } catch (error) {
+      console.error('Discord reminder delivery failed:', cleanError(error));
+    }
+  }
+}
+
+function fpsGuideEmbed(game) {
+  const value = game.toLowerCase();
+  let tips = ['Use exclusive fullscreen when the game supports it.', 'Cap FPS slightly below a stable limit instead of chasing unstable peaks.', 'Lower shadows, volumetrics, reflections, and view distance before textures.', 'Keep GPU drivers current and close unnecessary capture tools.', 'Measure changes in the same location with the same conditions.'];
+  if (/fortnite/.test(value)) tips = ['Try Performance Mode or DX12 and test both after shader compilation.', 'Disable Nanite/Lumen for competitive settings.', 'Use a stable frame cap matched to your monitor.', ...tips.slice(3)];
+  else if (/valorant/.test(value)) tips = ['Enable Multithreaded Rendering.', 'Keep Material, Detail, and UI quality low for competitive play.', 'NVIDIA Reflex or AMD Anti-Lag can reduce latency when GPU-bound.', ...tips.slice(3)];
+  else if (/minecraft/.test(value)) tips = ['Reduce render and simulation distance.', 'Use Sodium for Fabric or a trusted optimization pack for your loader.', 'Avoid assigning excessive RAM; 4-8 GB is normally enough for common modpacks.', ...tips.slice(3)];
+  else if (/roblox/.test(value)) tips = ['Use automatic or manual graphics levels appropriate for the experience.', 'Disable heavy overlays and test fullscreen.', 'Performance depends heavily on each experience scripts and assets.', ...tips.slice(3)];
+  return baseEmbed('FPS guide: ' + game, tips.map((tip, index) => '**' + (index + 1) + '.** ' + tip).join('\n')).setFooter({ text: 'CoreShift never promises fake FPS gains. Test one change at a time.' });
+}
+function baseEmbed(title, description) {
+  return new EmbedBuilder().setColor(Colors.Green).setTitle(String(title).slice(0, 256)).setDescription(String(description).slice(0, 4096)).setTimestamp().setFooter({ text: 'CoreShift Operations Network' });
+}
+function mysqlOffline(interaction) {
+  return interaction.reply({ content: 'CoreShift MySQL is offline. Start XAMPP and connect the desktop app first.', ephemeral: true });
+}
+function formatDuration(milliseconds) {
+  const seconds = Math.floor(milliseconds / 1000);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor(seconds % 86400 / 3600);
+  const minutes = Math.floor(seconds % 3600 / 60);
+  return [days ? days + 'd' : '', hours ? hours + 'h' : '', minutes + 'm'].filter(Boolean).join(' ');
+}
+function syncMessage(sync) {
+  const guildPart = sync.testGuildId ? ' Test server: ' + sync.guildCount + '/' + sync.expectedCount + '.' : '';
+  const warning = sync.guildError ? ' Test-server mirror failed: ' + sync.guildError : '';
+  const cleanup = sync.cleanup?.commandsRemoved ? ' Removed ' + sync.cleanup.commandsRemoved + ' stale guild command(s) from ' + sync.cleanup.scopesCleared + ' server scope(s).' : '';
+  const cleanupWarning = sync.cleanup?.errors?.length ? ' Some stale scopes could not be inspected.' : '';
+  return 'Global commands synchronized: ' + sync.globalCount + '/' + sync.expectedCount + '.' + guildPart + cleanup + warning + cleanupWarning;
+}
+async function safeInteractionError(interaction, error) {
+  const content = 'CoreShift command failed: ' + cleanError(error);
+  if (interaction.deferred || interaction.replied) await interaction.editReply({ content }).catch(() => {});
+  else await interaction.reply({ content, ephemeral: true }).catch(() => {});
+}
+function escapeDiscord(value) {
+  return String(value || '').replace(/([\\`*_{}[\]()#+\-.!|>~])/g, '\\$1').slice(0, 1000);
+}
+function cleanDiscordError(error) {
+  const message = cleanError(error);
+  if (/token|401|unauthorized/i.test(message)) return 'Discord rejected the bot token. Reset it on the Developer Portal Bot page, then paste the new token into CoreShift.';
+  if (/missing access|unknown guild|50001|10004/i.test(message)) return 'The bot cannot access the Test Server ID. Invite the bot to that server or clear the Test Server ID; global commands were still synchronized when possible.';
+  if (/used disallowed intents|4014/i.test(message)) return 'Discord rejected a gateway intent. CoreShift only requests the standard Guilds intent; verify the application Bot settings.';
+  return message;
+}
+function cleanError(error) {
+  return String(error?.message || error || 'Discord bot operation failed.').replace(/[\r\n\t]+/g, ' ').trim().slice(0, 500);
+}
+
+module.exports = { registerDiscordBot, APPLICATION_ID, COMMANDS, COMMAND_NAMES, FORBIDDEN_COMMAND_NAMES, isDestructiveCommandName, ensureBotTables };

@@ -1,0 +1,97 @@
+{
+  "name": "coreshift",
+  "version": "1.10.0",
+  "description": "CoreShift Game Performance Booster",
+  "author": "Spooky",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64",
+    "dist:update": "electron-builder --win --x64 && node scripts/generate-update-manifest.js dist"
+  },
+  "build": {
+    "appId": "com.coreshift.app",
+    "productName": "CoreShift",
+    "artifactName": "CoreShift-Setup-${version}.${ext}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "**/*",
+      "!dist/**/*",
+      "!release/**/*",
+      "!release-ui/**/*",
+      "!release-ui-final/**/*",
+      "!release-ui-v2/**/*",
+      "!release-ui-v3/**/*",
+      "!release-ui-v4/**/*",
+      "!release-ui-v5/**/*",
+      "!release-ui-v6/**/*",
+      "!release-ui-v7/**/*",
+      "!release-ui-v8/**/*",
+      "!release-ui-v9/**/*",
+      "!release-ui-v10/**/*",
+      "!release-ui-v11/**/*",
+      "!release-ui-v12/**/*",
+      "!release-ui-v13/**/*",
+      "!release-ui-v14/**/*",
+      "!release-ui-v15/**/*",
+      "!release-ui-v16/**/*",
+      "!release-ui-v17/**/*",
+      "!release-ui-v18/**/*",
+      "!release-ui-v19/**/*",
+      "!release-ui-v20/**/*",
+      "!release-ui-v21/**/*",
+      "!release-ui-v22/**/*",
+      "!release-ui-v23/**/*",
+      "!release-ui-v24/**/*",
+      "!release-ui-v25/**/*",
+      "!release-ui-v26/**/*",
+      "!release-ui-v27/**/*",
+      "!release-ui-v28/**/*",
+      "!release-ui-v29/**/*",
+      "!release-ui-v30/**/*",
+      "!release-ui-v31/**/*",
+      "!release-ui-v32/**/*",
+      "!release-ui-v33/**/*",
+      "!release-ui-v34/**/*",
+      "!release-ui-v35/**/*",
+      "!release-ui-v36/**/*",
+      "!release-ui-v37/**/*",
+      "!release-ui-v39/**/*",
+      "!coreshift-terms-site/**/*",
+      "!tests/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**/*"
+    ],
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://github.com/spookybandit139/CoreShift/releases/latest/download"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "include": "build/installer.nsh",
+      "license": "build/license.txt"
+    }
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "electron-updater": "^6.6.2",
+    "ffmpeg-static": "^5.2.0",
+    "mysql2": "^3.23.0",
+    "systeminformation": "^5.23.0"
+  }
+}
