@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CoreShift — Game Control Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="modules/latency-lab.css">
+  <link rel="stylesheet" href="css/pia.css">
+  <link rel="stylesheet" href="css/booster.css">
+  <link rel="stylesheet" href="css/launcher.css">
+  <link rel="stylesheet" href="css/clip-editor.css">
+  <link rel="stylesheet" href="css/clip-import.css">
+  <link rel="stylesheet" href="css/appearance.css">
+  <link rel="stylesheet" href="css/appearance-advanced.css">
+  <link rel="stylesheet" href="css/discord-presence.css">
+  <link rel="stylesheet" href="css/discord-bot.css">
+  <link rel="stylesheet" href="css/ip-privacy.css">
+  <link rel="stylesheet" href="css/updater.css">
+  <link rel="stylesheet" href="css/intelligence.css">
+  <link rel="stylesheet" href="css/scroll-fix.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="top-bar">
+    <div class="brand"><img src="icon.ico" alt="CoreShift logo"><b id="brandName">CORE<span>SHIFT</span></b><small>GAME CONTROL CENTER</small></div>
+    <div class="system-ready"><em></em> System ready</div>
+    <div class="top-actions"><button id="minimizeBtn">—</button><button id="closeBtn">×</button></div>
+  </header>
+
+  <aside class="sidebar">
+    <div class="profile"><i id="profileInitial">G</i><div><b id="profileName">Guest</b><small id="profileRole">Sign in to chat</small></div><button id="loginBtn">Log in</button></div>
+    <nav>
+      <p>CONTROL CENTER</p>
+      <button class="nav-btn active" data-panel="launcher"><i>▦</i>Game Launcher</button>
+      <button class="nav-btn" data-panel="overview"><i>⌘</i>Overview</button>
+      <button class="nav-btn" data-panel="boost"><i>↗</i>FPS Boost</button>
+      <button class="nav-btn" data-panel="clips"><i>◉</i>Clips</button>
+      <button class="nav-btn" data-panel="database"><i>▦</i>MySQL Studio</button>
+      <button class="nav-btn" data-panel="chat"><i>◌</i>Community Chat</button>
+      <button class="nav-btn" data-panel="crosshairs"><i>+</i>Crosshair Lab</button>
+      <button class="nav-btn" data-panel="latency"><i>⌁</i>Latency Lab</button>
+      <button id="discordBotNav" class="nav-btn" data-panel="bot" hidden><i>◆</i>Bot Command Center <small>OWNER</small></button>
+      <button class="nav-btn" data-panel="pia" hidden><i>▣</i>PIA <small>ADMIN</small></button>
+      <button class="nav-btn" data-panel="security"><i>◈</i>Security Check</button>
+      <button class="nav-btn" data-panel="intelligence"><i>⌖</i>Intelligence</button>
+      <p class="spacer">SYSTEM</p>
+      <button class="nav-btn" data-panel="monitor"><i>⌁</i>System Monitor</button>
+      <button id="ipPrivacyNav" class="nav-btn" data-panel="ipprivacy" hidden><i>◎</i>Daily IP Privacy <small>OWNER</small></button>
+      <button class="nav-btn" data-panel="settings"><i>⚙</i>Settings</button>
+    </nav>
+    <div class="sidebar-footer"><em></em> CoreShift Engine <b>v1.0</b></div>
+  </aside>
+
+  <main class="main-content">
+
+    <div class="core-mode-rail" role="navigation" aria-label="CoreShift modes">
+      <button class="active" type="button" data-top-panel="launcher" data-launcher-view="library">Launcher</button>
+      <button type="button" data-top-panel="boost">Booster</button>
+      <button type="button" data-top-panel="launcher" data-launcher-view="deals">Deals</button>
+      <button type="button" data-top-panel="launcher" data-launcher-view="rewards">Rewards</button>
+      <button type="button" data-top-panel="clips">Game Clips <small>BETA</small></button>
+      <button type="button" data-top-panel="launcher" data-launcher-view="guide">Core Guide <small>BETA</small></button>
+    </div>
+
+    <!-- GAME LAUNCHER PANEL -->
+    <section id="panel-launcher" class="panel visible launcher-panel">
+      <div class="launcher-subnav" role="tablist" aria-label="Launcher sections">
+        <button class="active" type="button" data-launcher-page-button="library">My Library</button>
+        <button type="button" data-launcher-page-button="platforms">Platforms</button>
+        <button type="button" data-launcher-page-button="ingame">In-Game</button>
+        <button type="button" data-launcher-page-button="remote">Remote Play</button>
+        <button id="launcherHelpBtn" type="button" data-launcher-page-button="guide">?</button>
+      </div>
+
+      <div id="launcher-page-library" class="launcher-page active" data-launcher-page="library">
+        <aside class="library-sidebar">
+          <div class="library-sidebar-title"><button id="refreshGameLibraryBtn" type="button" title="Refresh game library">↻</button><b>Games</b><button id="addLibraryGameBtn" type="button" title="Add a game">＋</button></div>
+          <button class="active" type="button" data-library-filter="summary"><i>◇</i>Summary</button>
+          <button type="button" data-library-filter="all"><i>▦</i>All games <span id="libraryCountAll">0</span></button>
+          <button type="button" data-library-filter="installed"><i>▣</i>Installed <span id="libraryCountInstalled">0</span></button>
+          <button type="button" data-library-filter="favorites"><i>★</i>Favorites <span id="libraryCountFavorites">0</span></button>
+          <p>PLATFORMS</p>
+          <button type="button" data-library-filter="steam"><i>◉</i>Steam <span id="libraryCountSteam">0</span></button>
+          <button type="button" data-library-filter="epic"><i>◆</i>Epic Games <span id="libraryCountEpic">0</span></button>
+          <button type="button" data-library-filter="xbox"><i>Ｘ</i>Xbox <span id="libraryCountXbox">0</span></button>
+          <button type="button" data-library-filter="ubisoft"><i>◎</i>Ubisoft <span id="libraryCountUbisoft">0</span></button>
+          <button type="button" data-library-filter="custom"><i>＋</i>Added games <span id="libraryCountCustom">0</span></button>
+        </aside>
+
+        <div class="library-content">
+          <article class="platform-connect-hero">
+            <div><small>UNIFIED GAME LIBRARY</small><h2>Bring your PC games together.</h2><p>CoreShift detects local Steam and Epic installations, keeps custom games on this PC, and launches the real platform client.</p><button type="button" data-launcher-page-jump="platforms">Check platforms</button></div>
+            <div class="platform-orbit" aria-hidden="true"><span>CS</span><i>STEAM</i><i>EPIC</i><i>XBOX</i><i>UBI</i></div>
+          </article>
+
+          <section class="launcher-section launcher-clips-section">
+            <header><div><small>MY CLIPS</small><h3>Recent gaming moments</h3></div><button type="button" data-go="clips">Open Clip Studio →</button></header>
+            <div id="launcherClipStrip" class="launcher-clip-strip"><div class="launcher-empty">Your latest CoreShift clips will appear here.</div></div>
+          </section>
+
+          <section class="launcher-section">
+            <header><div><small id="librarySectionEyebrow">MY LIBRARY</small><h3 id="librarySectionTitle">Installed games</h3></div><span id="libraryScanStatus">Scanning this PC…</span></header>
+            <div id="gameLibraryGrid" class="game-library-grid"><div class="launcher-empty">Scanning Steam, Epic Games, and your added games…</div></div>
+          </section>
+        </div>
+      </div>
+
+      <div id="launcher-page-platforms" class="launcher-page" data-launcher-page="platforms" hidden>
+        <div class="launcher-page-heading"><small>PLATFORM BRIDGE</small><h2>Your game ecosystems</h2><p>CoreShift detects installed launchers and opens their official clients. Login credentials remain inside each platform.</p></div>
+        <div id="platformConnectionGrid" class="platform-connection-grid"><div class="launcher-empty">Detecting installed game platforms…</div></div>
+      </div>
+
+      <div id="launcher-page-ingame" class="launcher-page" data-launcher-page="ingame" hidden>
+        <div class="launcher-page-heading"><small>IN-GAME TOOLKIT</small><h2>Tools that stay useful while you play</h2><p>Jump directly into CoreShift's existing overlays, capture studio, performance controls, and connection diagnostics.</p></div>
+        <div class="launcher-tool-grid">
+          <button type="button" data-go="boost"><i>↗</i><b>FPS Booster Ultra</b><small>Apply your saved reversible performance profile</small></button>
+          <button type="button" data-go="crosshairs"><i>＋</i><b>Crosshair Lab</b><small>Build and toggle your saved crosshair overlay</small></button>
+          <button type="button" data-go="clips"><i>◉</i><b>Instant Replay</b><small>Capture and edit the last moment without leaving CoreShift</small></button>
+          <button type="button" data-go="latency"><i>⌁</i><b>Latency Lab</b><small>Check ping, jitter, packet loss, and adapter health</small></button>
+          <button type="button" data-go="monitor"><i>▥</i><b>System Monitor</b><small>Watch CPU, memory, graphics, disk, and network telemetry</small></button>
+          <button type="button" data-go="settings"><i>⚙</i><b>FPS Overlay</b><small>Enable the lightweight on-top performance counter</small></button>
+        </div>
+      </div>
+
+      <div id="launcher-page-remote" class="launcher-page" data-launcher-page="remote" hidden>
+        <div class="launcher-page-heading"><small>REMOTE PLAY LAUNCHPAD</small><h2>Play through tools you already trust</h2><p>CoreShift does not relay your video or credentials. It opens the installed Windows or platform remote-play experience.</p></div>
+        <div class="remote-play-grid">
+          <article><i>◉</i><h3>Steam Big Picture</h3><p>Open Steam's controller-first interface and access Remote Play from your library.</p><button type="button" data-library-destination="steamBigPicture">Open Steam</button><button class="secondary" type="button" data-library-destination="steamRemoteHelp">Remote Play help</button></article>
+          <article><i>Ｘ</i><h3>Xbox Remote Play</h3><p>Open Microsoft's official Remote Play information and connect through the Xbox app.</p><button type="button" data-library-destination="xboxRemoteHelp">Open Xbox guide</button></article>
+          <article><i>▣</i><h3>Windows Remote Desktop</h3><p>Open the built-in Windows client. Use it only with PCs and networks you control.</p><button type="button" data-library-destination="windowsRemoteDesktop">Open Remote Desktop</button></article>
+        </div>
+      </div>
+
+      <div id="launcher-page-deals" class="launcher-page" data-launcher-page="deals" hidden>
+        <div class="launcher-page-heading"><small>OFFICIAL STORE LINKS</small><h2>Live game deals</h2><p>Prices change constantly, so CoreShift sends you to each platform's official live deals page instead of showing stale or invented discounts.</p></div>
+        <div class="deal-grid">
+          <button type="button" data-library-destination="steamDeals"><span>STEAM</span><b>PC game specials</b><small>Browse Steam's current specials</small><i>OPEN →</i></button>
+          <button type="button" data-library-destination="epicFree"><span>EPIC GAMES</span><b>Free games</b><small>See the current official weekly offers</small><i>OPEN →</i></button>
+          <button type="button" data-library-destination="xboxDeals"><span>XBOX</span><b>Store &amp; Game Pass</b><small>Browse Microsoft's current catalog</small><i>OPEN →</i></button>
+          <button type="button" data-library-destination="ubisoftDeals"><span>UBISOFT</span><b>Weekly offers</b><small>Browse Ubisoft's official deals page</small><i>OPEN →</i></button>
+        </div>
+      </div>
+
+      <div id="launcher-page-rewards" class="launcher-page" data-launcher-page="rewards" hidden>
+        <div class="launcher-page-heading"><small>CORE BADGES</small><h2>Progress without fake money</h2><p>CoreShift tracks local milestones for using your own tools. There are no advertisements, crypto rewards, or earnings claims.</p></div>
+        <div id="coreBadgeGrid" class="core-badge-grid"></div>
+      </div>
+
+      <div id="launcher-page-guide" class="launcher-page" data-launcher-page="guide" hidden>
+        <div class="launcher-page-heading"><small>CORE GUIDE BETA</small><h2>Your local gaming copilot</h2><p>Private, rule-based recommendations using only the telemetry already shown in CoreShift.</p></div>
+        <div id="coreGuideCards" class="core-guide-cards"><div class="launcher-empty">Analyzing current system telemetry…</div></div>
+      </div>
+    </section>
+
+    <!-- OVERVIEW PANEL -->
+    <section id="panel-overview" class="panel">
+      <div class="heading">
+        <div>
+          <p>PLAYER HUB</p>
+          <h1 id="welcomeTitle">What are we playing?</h1>
+          <small id="welcomeDescription">Pick a vibe, launch a mode, and make something worth clipping.</small>
+        </div>
+        <button class="outline" id="refreshStatsBtn">↻ Refresh telemetry</button>
+      </div>
+
+      <div class="hero-grid">
+        <article class="boost-hero">
+          <div>
+            <p>TONIGHT'S POWER-UP</p>
+            <h2>More game.<br><span>Less waiting.</span></h2>
+            <small>Turn on your performance profile, then get right back to the fun.</small>
+            <button class="primary" id="quickBoostBtn">Power up my session <b>→</b></button>
+          </div>
+          <div class="score">
+            <strong id="boostPercent">GO</strong>
+            <small>MODE</small>
+            <span>LET'S PLAY</span>
+          </div>
+        </article>
+
+        <article class="status-card">
+          <header><b>YOUR RIG RIGHT NOW</b><span><i></i> READY</span></header>
+          <div class="metric">
+            <small>CPU LOAD</small>
+            <strong id="cpuLoad">--<i>%</i></strong>
+            <div><b id="cpuMeter"></b></div>
+          </div>
+          <div class="metric">
+            <small>MEMORY</small>
+            <strong id="ramUsage">--<i> GB</i></strong>
+            <div class="purple"><b id="ramMeter"></b></div>
+          </div>
+          <footer><small>GPU</small><b id="gpuName">Detecting hardware…</b></footer>
+        </article>
+      </div>
+
+      <div class="overview-pulse"><span class="pulse-orb"></span><div><b>THE NIGHT IS YOURS</b><small>Power up, save a moment, or see what the community is talking about.</small></div><button id="surpriseBtn">✦ Pick for me</button></div>
+      <div class="section-title"><b>CHOOSE YOUR NEXT MOVE</b><i></i><small>NO SETUP REQUIRED</small></div>
+      <div class="quick-grid overview-actions">
+        <button data-go="boost"><i>↗</i><b>Boost & play</b><small>Get your PC in game mode before you queue up</small><span>START BOOST →</span></button>
+        <button data-go="clips"><i>◉</i><b>Save the hype</b><small>Clip the clutch, the chaos, or the funniest fail</small><span>OPEN CLIPS →</span></button>
+        <button data-go="chat"><i>◌</i><b>Join the community</b><small>Chat, send GIFs, swap tips, and debate Star Wars</small><span>OPEN CHAT →</span></button>
+      </div>
+    </section>
+
+    <!-- OWNER-ONLY DISCORD BOT COMMAND CENTER -->
+    <section id="panel-bot" class="panel bot-command-center-panel">
+      <div class="heading">
+        <div><p>DISCORD OPERATIONS</p><h1>Bot Command Center</h1><small>Securely connect the CoreShift bot, register slash commands, and open its server invite.</small></div>
+        <span class="bot-owner-chip">SPOOKYBANDIT139 ONLY</span>
+      </div>
+      <div class="bot-control-layout">
+        <article id="discordBotCard" class="settings discord-bot-settings" hidden>
+          <div class="bot-card-heading">
+            <div><p>SECURE TOKEN VAULT</p><h3>CoreShift Discord Bot</h3></div>
+            <span id="discordBotState" data-state="stopped">STOPPED</span>
+          </div>
+          <p>Paste the new token from Discord Developer Portal below. Windows encrypts it immediately; CoreShift clears the box after saving and never displays the stored token.</p>
+          <label class="discord-field">Discord Application ID<input id="discordBotApplicationId" value="1414846841371099156" readonly></label>
+          <label class="discord-field token-entry-field">Bot token<input id="discordBotToken" type="password" autocomplete="new-password" spellcheck="false" placeholder="Paste your NEW Discord bot token here"></label>
+          <small class="bot-token-warning">Never paste this token into chat, GitHub, screenshots, or MySQL. If it is exposed, reset it before saving.</small>
+          <label class="discord-field">Test Server ID <small>(optional; commands update instantly)</small><input id="discordBotGuildId" inputmode="numeric" maxlength="22" placeholder="Leave empty for global commands"></label>
+          <label class="bot-switch"><span><b>Start bot with CoreShift</b><small>Keep the bot online while the owner app is running</small></span><input id="discordBotAutoStart" type="checkbox"><i></i></label>
+          <div class="bot-command-actions">
+            <button id="saveDiscordBotBtn" type="button" class="primary">Save encrypted token &amp; settings</button>
+            <button id="startDiscordBotBtn" type="button" class="outline">Start bot</button>
+            <button id="stopDiscordBotBtn" type="button" class="outline">Stop bot</button>
+            <button id="registerDiscordCommandsBtn" type="button" class="outline">Sync safe commands &amp; purge legacy</button>
+            <button id="inspectDiscordCommandsBtn" type="button" class="outline">Inspect command sync</button>
+            <button id="openDiscordBotPortalBtn" type="button" class="outline">Open Bot setup</button>
+            <button id="inviteDiscordBotBtn" type="button" class="outline">Invite bot</button>
+          </div>
+          <label class="discord-field bot-invite-field">Least-privilege invite link<input id="discordBotInviteUrl" readonly></label>
+          <small id="discordBotStatus">Create or reset the Bot token in Discord Developer Portal, then paste it above.</small>
+          <div id="discordCommandInspection" class="bot-command-inspection">Command registry has not been inspected yet. Destructive legacy commands are blocked and removed during sync.</div>
+        </article>
+        <article class="bot-guide-card">
+          <small>LAUNCH SEQUENCE</small>
+          <h3>Three steps to online</h3>
+          <ol><li><b>Reset the exposed token</b><span>Use Open Bot setup and select Reset Token.</span></li><li><b>Paste and save</b><span>Use the visible secure field on this panel.</span></li><li><b>Start and register</b><span>Bring the bot online, then publish its slash commands.</span></li></ol>
+          <div class="bot-command-deck"><b>20-command deck</b><div id="botCommandDeckList"><code>/help</code><code>/ping</code><code>/status</code><code>/coreshift</code><code>/invite</code><code>/server</code><code>/roles</code><code>/avatar</code><code>/userinfo</code><code>/choose</code><code>/random</code><code>/fpsguide</code><code>/clipchallenge</code><code>/remind</code><code>/suggest</code><code>/suggestions</code><code>/clipshare</code><code>/clips</code><code>/mission</code><code>/benchmark</code></div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- BOOST PANEL -->
+    <section id="panel-boost" class="panel booster-ultra-panel">
+      <div class="heading">
+        <div>
+          <p>REVERSIBLE PERFORMANCE ENGINE</p>
+          <h1>FPS Booster Ultra</h1>
+          <small>Build a saved gaming profile, free background working memory, and restore every Windows change when you finish.</small>
+        </div>
+        <div id="boostBadge" class="badge">● Ready</div>
+      </div>
+
+      <article class="booster-result-hero">
+        <div class="booster-memory-mark" aria-hidden="true"><i></i></div>
+        <div class="booster-result-copy">
+          <small>LAST MEMORY RELEASE</small>
+          <h2>Released memory: <strong id="boostReleasedMemory">0 MB</strong></h2>
+          <span><b id="boostItemsOptimized">0</b> items optimized · <b id="boostProcessesTrimmed">0</b> processes trimmed</span>
+        </div>
+        <label class="booster-auto-switch"><input id="autoBoostToggle" type="checkbox"><i></i><span><b>Auto-Boost</b><small>Activates when your saved game starts</small></span></label>
+        <button id="restoreBoostBtn" class="booster-restore" type="button">Restore now</button>
+      </article>
+
+      <div class="booster-command-grid">
+        <article class="booster-core-card">
+          <div class="booster-core-ring"><span>FPS</span><strong id="boostState">READY</strong><small>SESSION</small></div>
+          <div class="booster-core-actions">
+            <button id="boostBtn" class="primary">Apply selected boost</button>
+            <button id="cleanRamOnlyBtn" class="outline">Free background RAM</button>
+          </div>
+          <small id="boostStatus">Your selected options are saved locally and remain free to use.</small>
+        </article>
+
+        <article class="booster-profile-card">
+          <div class="booster-card-title"><div><small>AUTO-BOOST PROFILE</small><h3>Saved game launcher</h3></div><span>LOCAL</span></div>
+          <div class="booster-game-path"><i>▶</i><div><b id="boosterGameName">No game selected</b><small id="boosterGamePath">Choose a Windows game executable for automatic detection.</small></div></div>
+          <div class="booster-profile-actions"><button id="chooseBoosterGameBtn" class="outline">Choose game .exe</button><button id="launchBoosterGameBtn" class="primary" disabled>Boost &amp; launch</button></div>
+          <p>Auto-Boost watches only the selected executable name. It does not record keys, windows, or gameplay.</p>
+        </article>
+      </div>
+
+      <article class="booster-options-card">
+        <div class="booster-card-title"><div><small>SAVED OPTIMIZATION PROFILE</small><h3>Gaming session controls</h3></div><span>ALL OPTIONS FREE</span></div>
+        <div class="booster-option-grid">
+          <label><span><b>Temporary gaming power plan</b><small>Creates a separate plan and restores your old plan on exit</small></span><input id="powerPlanToggle" data-booster-option="powerPlan" type="checkbox" checked><i></i></label>
+          <label><span><b>Prefer all CPU cores</b><small>Minimizes core parking inside the temporary plan</small></span><input id="cpuCoresToggle" data-booster-option="cpuCores" type="checkbox" checked><i></i></label>
+          <label class="booster-caution"><span><b>Low-latency CPU idle</b><small>Maximum responsiveness, but higher heat and power use</small></span><input id="cpuIdleToggle" data-booster-option="cpuIdle" type="checkbox"><i></i></label>
+          <label><span><b>Windows Game Mode</b><small>Enables Windows game-aware scheduling</small></span><input id="gameModeToggle" data-booster-option="gameMode" type="checkbox" checked><i></i></label>
+          <label><span><b>Disable Game DVR capture</b><small>Pauses Windows background recording while boosted</small></span><input id="gameDvrToggle" data-booster-option="gameDvr" type="checkbox" checked><i></i></label>
+          <label><span><b>Clean background RAM</b><small>Trims accessible non-system process working sets</small></span><input id="boostRamToggle" data-booster-option="trimRam" type="checkbox" checked><i></i></label>
+          <label><span><b>Clear clipboard</b><small>Removes clipboard contents when boost is applied</small></span><input id="clearClipboardToggle" data-booster-option="clearClipboard" type="checkbox"><i></i></label>
+          <label><span><b>Disable Sticky Keys shortcut</b><small>Stops the five-Shift-key popup during games</small></span><input id="stickyKeysToggle" data-booster-option="stickyKeys" type="checkbox"><i></i></label>
+          <label><span><b>Disable legacy search assistant</b><small>Applies the reversible Cortana policy on older Windows builds</small></span><input id="searchAssistantToggle" data-booster-option="searchAssistant" type="checkbox"><i></i></label>
+          <label><span><b>Restrict background apps</b><small>Pauses supported Store apps until settings are restored</small></span><input id="backgroundAppsToggle" data-booster-option="backgroundApps" type="checkbox"><i></i></label>
+          <label class="booster-caution"><span><b>Pause problem reporting</b><small>Stops Windows Error Reporting during the boosted session</small></span><input id="problemReportsToggle" data-booster-option="problemReports" type="checkbox"><i></i></label>
+          <label><span><b>Reduce diagnostic personalization</b><small>Disables tailored diagnostic experiences for this user</small></span><input id="diagnosticsToggle" data-booster-option="diagnostics" type="checkbox"><i></i></label>
+          <label><span><b>Quiet notification toasts</b><small>Prevents notification popups while you play</small></span><input id="quietNotificationsToggle" data-booster-option="quietNotifications" type="checkbox"><i></i></label>
+        </div>
+        <div class="booster-safety-note"><b>Reversible by design</b><span>CoreShift backs up every changed registry value, uses a temporary power plan, and restores the previous state with Restore now or when the app closes.</span></div>
+      </article>
+
+      <article class="booster-process-card">
+        <div class="booster-card-title"><div><small>PROCESS VIEW</small><h3>Largest background memory users</h3></div><button id="refreshBoosterProcessesBtn" class="outline">Refresh</button></div>
+        <div id="boosterProcessList" class="booster-process-list"><div class="booster-empty">Loading running processes…</div></div>
+      </article>
+    </section>
+
+    <!-- CLIPS PANEL -->
+    <section id="panel-clips" class="panel clip-studio-panel">
+      <div class="heading">
+        <div><p>CORECAPTURE ENGINE</p><h1>Clip Studio Ultra</h1><small>High-frame-rate recording, instant replay, and a non-destructive FFmpeg editing workstation.</small></div>
+        <div class="clip-engine-state"><i></i><span><b id="clipCaptureState">CAPTURE READY</b><small id="clipCaptureTimer">00:00:00</small></span></div>
+      </div>
+
+      <div class="clip-command-deck">
+        <article class="clip-replay-hero">
+          <div class="clip-replay-copy"><small>MEDAL-STYLE INSTANT REPLAY</small><h2>Never miss the moment.</h2><p>Run a lightweight rolling buffer, then save only the previous moment with <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>.</p><span id="clipReplayStatus">Replay buffer is stopped.</span></div>
+          <div class="clip-primary-actions">
+            <button id="replayBufferBtn" class="primary">Start replay buffer</button>
+            <button id="saveReplayBtn" class="outline" disabled>Save last replay</button>
+            <button id="recordBtn" class="record"><i></i> Start full recording</button>
+            <button id="openFolderBtn" class="outline">Open clip folder</button>
+          </div>
+        </article>
+
+        <article class="clip-capture-settings">
+          <header><div><small>CAPTURE PROFILE</small><h3>Recording controls</h3></div><button id="refreshSourcesBtn" class="micro-btn">Refresh displays</button></header>
+          <div class="clip-control-grid">
+            <label>CAPTURE SOURCE<select id="clipSourceSelect"><option value="">Detecting displays…</option></select></label>
+            <label>RESOLUTION<select id="clipResolutionSelect"><option value="source">Display native</option><option value="1280x720">720p</option><option value="1920x1080" selected>1080p</option><option value="2560x1440">1440p</option><option value="3840x2160">4K</option></select></label>
+            <label>CAPTURE FPS<select id="clipFpsSelect"><option value="15">15 FPS</option><option value="24">24 FPS</option><option value="30">30 FPS</option><option value="45">45 FPS</option><option value="60" selected>60 FPS</option><option value="90">90 FPS</option><option value="120">120 FPS</option><option value="144">144 FPS</option></select></label>
+            <label>VIDEO BITRATE<select id="bitrateSelect"><option value="6000000">6 Mbps · Efficient</option><option value="10000000">10 Mbps · Standard</option><option value="16000000" selected>16 Mbps · High</option><option value="24000000">24 Mbps · Ultra</option><option value="35000000">35 Mbps · Master</option><option value="50000000">50 Mbps · Archive</option></select></label>
+            <label>REPLAY LENGTH<select id="clipReplayLength"><option value="15">Last 15 seconds</option><option value="30" selected>Last 30 seconds</option><option value="45">Last 45 seconds</option><option value="60">Last 60 seconds</option><option value="90">Last 90 seconds</option><option value="120">Last 120 seconds</option></select></label>
+            <label>SEGMENT SIZE<select id="clipReplaySegment"><option value="5">5 sec · Responsive</option><option value="10" selected>10 sec · Balanced</option><option value="15">15 sec · Efficient</option></select></label>
+          </div>
+          <div class="clip-audio-mixer">
+            <label class="clip-switch"><span><b>System audio</b><small>Capture game and desktop sound</small></span><input id="clipAudioToggle" type="checkbox" checked><i></i></label>
+            <label class="clip-level">GAME <input id="clipSystemVolume" type="range" min="0" max="150" value="100"><output id="clipSystemVolumeOut">100%</output></label>
+            <label class="clip-switch"><span><b>Microphone</b><small>Mix your default Windows microphone</small></span><input id="clipMicToggle" type="checkbox"><i></i></label>
+            <label class="clip-level">MIC <input id="clipMicVolume" type="range" min="0" max="200" value="100"><output id="clipMicVolumeOut">100%</output></label>
+          </div>
+          <small id="clipCaptureStatus">Higher FPS depends on the display refresh rate and available encoder performance. CoreShift reports the actual captured mode after recording starts.</small>
+        </article>
+      </div>
+
+      <div class="section-title"><b>CLIP LIBRARY &amp; ULTRA EDITOR</b><i></i><button id="refreshClipsBtn">↻ Refresh library</button></div>
+      <div class="clip-studio-layout ultra">
+        <aside class="clip-library-card">
+          <header><div><small>YOUR MEDIA</small><h3>Clip library</h3></div><span id="clipLibraryCount">0 CLIPS</span></header>
+          <div class="clip-library-actions"><button id="clipImportBtn" class="primary">+ Choose video to edit</button><button id="clipEditSelectedBtn" class="outline" disabled>Open selected clip</button></div>
+          <input id="clipSearch" class="clip-search" placeholder="Search saved clips…" autocomplete="off">
+          <div id="clipList" class="clip-list"><div class="empty"><i>◉</i><b>Your clips will appear here</b><small>Record or save a replay to begin editing.</small></div></div>
+        </aside>
+
+        <article class="clip-editor-card ultra">
+          <header><div><small>NOW EDITING</small><b id="clipEditorName">Select a saved clip</b></div><div class="clip-editor-readout"><span id="clipSelectionDuration">0.0 SEC SELECTED</span><b id="clipEditorDuration">00:00</b></div></header>
+          <div class="clip-preview-stage">
+            <video id="clipPreview" controls preload="metadata" hidden></video>
+            <div id="clipCaptionPreview" class="clip-caption-preview" hidden></div>
+            <div id="clipEditorEmpty" class="clip-editor-empty"><i>✦</i><b>Choose a clip to enter the edit bay</b><small>Your source file always remains unchanged.</small></div>
+          </div>
+
+          <div class="clip-transport">
+            <button id="clipFrameBackBtn" title="Previous frame" disabled>−1F</button>
+            <button id="clipPlaySelectionBtn" class="primary" disabled>▶ Play selection</button>
+            <button id="clipFrameForwardBtn" title="Next frame" disabled>+1F</button>
+            <span id="clipPlayhead">00:00.000</span>
+            <label>SPEED<select id="clipPlaybackSpeed" disabled><option value=".25">0.25×</option><option value=".5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label>
+          </div>
+
+          <div class="clip-timeline">
+            <label>IN <output id="clipStartOutput">00:00.000</output><input id="clipStartRange" type="range" min="0" max="1" step="0.01" value="0" disabled></label>
+            <label>OUT <output id="clipEndOutput">00:00.000</output><input id="clipEndRange" type="range" min="0" max="1" step="0.01" value="1" disabled></label>
+          </div>
+          <div class="clip-mark-actions"><button id="clipSetStartBtn" class="outline" disabled>Mark IN at playhead</button><button id="clipSetEndBtn" class="outline" disabled>Mark OUT at playhead</button><button id="clipResetRangeBtn" class="outline" disabled>Reset selection</button></div>
+
+          <div id="clipEditWorkspace" class="clip-edit-workspace">
+            <section class="clip-tool-card">
+              <header><small>CANVAS</small><b>Transform</b></header>
+              <label>ASPECT RATIO<select id="clipAspectSelect" disabled><option value="original">Original</option><option value="16:9">16:9 · YouTube</option><option value="9:16">9:16 · Shorts/TikTok</option><option value="1:1">1:1 · Square</option><option value="4:3">4:3 · Classic</option></select></label>
+              <label>ROTATION<select id="clipRotationSelect" disabled><option value="0">0°</option><option value="90">90° clockwise</option><option value="180">180°</option><option value="270">90° counter-clockwise</option></select></label>
+              <label class="clip-check"><input id="clipFlipToggle" type="checkbox" disabled> Mirror horizontally</label>
+            </section>
+
+            <section class="clip-tool-card">
+              <header><small>LOOK</small><b>Color grade</b></header>
+              <label>FILTER<select id="clipFilterSelect" disabled><option value="clean">Clean</option><option value="vibrant">Vibrant</option><option value="cinematic">Cinematic</option><option value="mono">Monochrome</option><option value="warm">Warm</option><option value="cool">Cool</option></select></label>
+              <label class="clip-slider">BRIGHTNESS <input id="clipBrightness" type="range" min="-100" max="100" value="0" disabled><output id="clipBrightnessOut">0</output></label>
+              <label class="clip-slider">CONTRAST <input id="clipContrast" type="range" min="50" max="200" value="100" disabled><output id="clipContrastOut">100</output></label>
+              <label class="clip-slider">SATURATION <input id="clipSaturation" type="range" min="0" max="250" value="100" disabled><output id="clipSaturationOut">100</output></label>
+            </section>
+
+            <section class="clip-tool-card">
+              <header><small>SOUND</small><b>Audio mix</b></header>
+              <label class="clip-slider">VOLUME <input id="clipEditorVolume" type="range" min="0" max="200" value="100" disabled><output id="clipEditorVolumeOut">100%</output></label>
+              <label class="clip-check"><input id="clipEditorMute" type="checkbox" disabled> Remove all audio on export</label>
+              <small>Preview volume updates immediately. Export can normalize from 0–200%.</small>
+            </section>
+
+            <section class="clip-tool-card">
+              <header><small>OVERLAY</small><b>Caption</b></header>
+              <input id="clipCaptionText" maxlength="160" placeholder="Add optional on-screen text…" disabled>
+              <label>POSITION<select id="clipCaptionPosition" disabled><option value="bottom">Bottom</option><option value="center">Center</option><option value="top">Top</option></select></label>
+              <small>Captions are burned into the exported video for consistent playback.</small>
+            </section>
+          </div>
+
+          <section class="clip-export-deck">
+            <header><div><small>RENDER QUEUE</small><h3>Export selected highlight</h3></div><span>WEBM · VP9 · OPUS</span></header>
+            <div class="clip-export-grid">
+              <label>FILE NAME<input id="clipExportName" maxlength="80" placeholder="my-highlight" disabled></label>
+              <label>RESOLUTION<select id="clipExportResolution" disabled><option value="source">Source</option><option value="720">720p</option><option value="1080" selected>1080p</option><option value="1440">1440p</option><option value="2160">4K</option></select></label>
+              <label>EXPORT FPS<select id="clipExportFps" disabled><option value="15">15 FPS</option><option value="24">24 FPS</option><option value="30">30 FPS</option><option value="45">45 FPS</option><option value="60" selected>60 FPS</option><option value="90">90 FPS</option><option value="120">120 FPS</option><option value="144">144 FPS</option></select></label>
+              <label>QUALITY<select id="clipExportQuality" disabled><option value="fast">Fast render</option><option value="balanced" selected>Balanced</option><option value="quality">Maximum quality</option></select></label>
+              <label>BITRATE<select id="clipExportBitrate" disabled><option value="6000000">6 Mbps</option><option value="10000000">10 Mbps</option><option value="16000000" selected>16 Mbps</option><option value="24000000">24 Mbps</option><option value="35000000">35 Mbps</option><option value="50000000">50 Mbps</option><option value="80000000">80 Mbps</option></select></label>
+            </div>
+            <div class="clip-export-progress"><i id="clipExportProgressBar"></i></div>
+            <div class="clip-editor-actions"><button id="clipSaveHighlightBtn" class="primary" disabled>Export edited clip</button><button id="clipCancelExportBtn" class="outline" hidden>Cancel render</button></div>
+            <small id="clipEditorStatus">Select a clip to begin. Exports are saved as new files in Videos\CoreShift Clips.</small>
+          </section>
+        </article>
+      </div>
+    </section>
+
+    <!-- DATABASE PANEL -->
+    <section id="panel-database" class="panel">
+      <div class="heading">
+        <div><p>DATABASE WORKSPACE</p><h1>MySQL Studio</h1><small>A web-style workspace for your game data and MySQL queries.</small></div>
+        <div id="connectionStatus" class="connection"><i></i> Local workspace</div>
+      </div>
+
+      <div class="db-layout">
+        <aside>
+          <button id="connectDbBtn">+ Connect database</button>
+          <button id="refreshTablesBtn">↻ Refresh tables</button>
+          <p>CONNECTIONS</p>
+          <b id="dbConnectionLabel">⌄ game_server</b>
+          <small id="dbConnectionHost">localhost:3306</small>
+          <div id="schemaTables"></div>
+        </aside>
+
+        <article>
+          <header><b>Query 1</b><small>● MySQL editor</small><button id="runQueryBtn">▶ Run query</button></header>
+          <textarea id="queryEditor" spellcheck="false">SELECT id, username, rank, last_seen
+FROM players
+ORDER BY last_seen DESC
+LIMIT 5;</textarea>
+          <div class="results"><b>RESULTS</b><small id="queryResult">0 rows</small></div>
+          <div class="table"><table><thead></thead><tbody id="queryRows"></tbody></table></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- CHAT PANEL -->
+    <section id="panel-chat" class="panel">
+      <div class="heading">
+        <div><p>COMMUNITY</p><h1>Community Chat</h1><small>Messages are stored in your connected MySQL database.</small></div>
+        <div id="chatConnection" class="connection"><i></i> Database required</div>
+      </div>
+
+      <div class="chat-layout">
+        <aside>
+          <b>CHANNELS</b>
+          <button class="active" data-channel="general"># general</button>
+          <button data-channel="clips"># clips</button>
+          <button data-channel="game-help"># game-help</button>
+          <button data-channel="star-wars"># star-wars</button>
+          <button data-channel="tips"># tips</button>
+          <small>Messages use the MySQL connection configured in Settings.</small>
+        </aside>
+
+        <article>
+          <header><b id="channelTitle"># general</b><small>Talk with your team</small></header>
+          <div id="chatMessages" class="messages"><div class="chat-empty">Connect MySQL in Settings to load saved messages.</div></div>
+          <form id="chatForm">
+            <input id="chatName" maxlength="40" placeholder="Display name">
+            <input id="chatText" maxlength="1000" placeholder="Message #general" required>
+            <button>Send</button>
+          </form>
+        </article>
+      </div>
+    </section>
+
+    <section id="panel-crosshairs" class="panel">
+      <div class="heading"><div><p>AIM LAB</p><h1>Crosshair Lab</h1><small>Create your favorite look, save it to your profile, and load it whenever you come back.</small></div></div>
+      <div class="crosshair-layout">
+        <article class="crosshair-stage"><div id="crosshairPreview" class="crosshair-preview"><i></i><b></b><em></em><strong></strong></div><small>LIVE PREVIEW</small><label class="crosshair-toggle"><input id="crosshairToggle" type="checkbox"><i></i><span>Enable in-game overlay</span></label></article>
+        <article class="settings crosshair-editor"><h3>Build a crosshair</h3><form id="crosshairForm"><label>Name<input id="crosshairName" maxlength="80" placeholder="My ranked crosshair" required></label><div class="crosshair-controls"><label>Shape<select id="crosshairShape"><option value="plus">Plus</option><option value="dot">Dot</option><option value="cross">Cross</option></select></label><label>Color<input id="crosshairColor" type="color" value="#b7ff35"></label><label>Size<input id="crosshairSize" type="range" min="8" max="56" value="28"></label><label>Thickness<input id="crosshairThickness" type="range" min="1" max="8" value="3"></label><label>Gap<input id="crosshairGap" type="range" min="0" max="20" value="6"></label></div><div class="crosshair-actions"><button type="button" id="importCrosshairBtn" class="outline">Import .json preset</button><button class="primary">Save to my profile</button></div></form></article>
+        <article class="settings crosshair-library"><h3>My saved crosshairs</h3><div id="crosshairList"><small>Sign in to load your presets.</small></div></article>
+      </div>
+    </section>
+
+    <!-- SECURITY PANEL -->
+    <section id="panel-security" class="panel">
+      <div class="heading">
+        <div><p>SECURITY CHECK</p><h1>VirusTotal checker</h1><small>Check a URL or a selected file with VirusTotal.</small></div>
+      </div>
+
+      <div class="security-grid">
+
+        <!-- FILE CHECK -->
+        <article class="settings">
+          <h3>File check</h3>
+          <p>Choose a file (up to 32 MB) to hash and check.</p>
+          <button id="chooseFileBtn" class="outline setting-btn">Choose file</button>
+          <b id="selectedFile">No file selected</b>
+          <button id="scanFileBtn" class="primary">Scan selected file</button>
+        </article>
+
+        <!-- URL CHECK -->
+        <article class="settings">
+          <h3>URL check</h3>
+          <p>Submit a website address to VirusTotal.</p>
+          <form id="scanUrlForm" class="url-form">
+            <input id="scanUrl" type="url" placeholder="https://example.com" required>
+            <button class="primary">Scan URL</button>
+          </form>
+        </article>
+
+        <!-- SCAN RESULT -->
+        <article class="settings scan-result">
+          <h3>Scan result</h3>
+          <div id="scanResult">Add your VirusTotal API key in Settings to use the checker.</div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- LOCAL-FIRST INTELLIGENCE WORKSPACE -->
+    <section id="panel-intelligence" class="panel intelligence-panel" aria-label="CoreShift Intelligence workspace">
+      <div class="intel-shell">
+        <aside class="intel-module-rail" aria-label="Intelligence modules">
+          <div class="intel-brand" aria-label="CoreShift Intelligence">
+            <span class="intel-brand-mark" aria-hidden="true">CS</span>
+            <div class="intel-brand-copy"><b>INTELLIGENCE</b><small>RESEARCH WORKSPACE</small></div>
+          </div>
+          <div class="intel-module-search">
+            <label class="intel-filter-label" for="intelModuleFilter">Find a module</label>
+            <input id="intelModuleFilter" type="search" maxlength="80" autocomplete="off" spellcheck="false" placeholder="Search modules…" aria-controls="intelModuleNav">
+          </div>
+          <nav id="intelModuleNav" aria-label="Intelligence module list"></nav>
+          <footer class="intel-rail-footer"><span aria-hidden="true"></span><div><b>LOCAL-FIRST</b><small>No background lookups</small></div></footer>
+        </aside>
+
+        <div class="intel-workspace">
+          <header class="intel-workspace-header intel-topbar">
+            <div class="intel-heading-block intel-breadcrumb">
+              <small id="intelBreadcrumb">INTELLIGENCE / DASHBOARD</small>
+              <h1>CoreShift Intelligence</h1>
+            </div>
+            <div class="intel-session-tools intel-case-tools">
+              <label for="intelActiveCaseSelect">Active case
+                <select id="intelActiveCaseSelect" aria-label="Active intelligence case"><option value="">No active case</option></select>
+              </label>
+              <span id="intelSessionMode" class="intel-session-badge" role="status" aria-label="Session mode">LOCAL FIRST</span>
+              <button id="intelLoadDemoBtn" type="button" class="outline intel-top-action">Load offline demo</button>
+              <button id="intelNewCaseBtn" type="button" class="primary intel-top-action">New case</button>
+            </div>
+          </header>
+          <div id="intelEgressNotice" class="intel-egress-notice" role="status" aria-live="polite">
+            No network request is running. Live providers require confirmation for every lookup.
+          </div>
+          <div id="intelStage" class="intel-stage" tabindex="-1" aria-live="polite" aria-busy="false"></div>
+        </div>
+      </div>
+
+      <input id="intelFileInput" type="file" hidden aria-hidden="true">
+
+      <div id="intelCaseModal" class="intel-modal" role="dialog" aria-modal="true" aria-labelledby="intelCaseModalTitle" hidden>
+        <article class="intel-modal-card">
+          <header><div><small>CASE WORKSPACE</small><h2 id="intelCaseModalTitle">Create a research case</h2></div><button id="intelCaseCancel" type="button" aria-label="Close case dialog">×</button></header>
+          <form id="intelCaseForm">
+            <label for="intelCaseTitle">Case title<input id="intelCaseTitle" maxlength="100" autocomplete="off" required placeholder="Example: Brand impersonation review"></label>
+            <label for="intelCasePurpose">Purpose<textarea id="intelCasePurpose" maxlength="500" required placeholder="What legitimate question are you investigating?"></textarea></label>
+            <label for="intelCaseAuthorization">Authorization<textarea id="intelCaseAuthorization" maxlength="500" required placeholder="Describe your authority, ownership, or consent."></textarea></label>
+            <p>Cases are saved locally in CoreShift settings. Searches are not saved unless you explicitly add a result as evidence.</p>
+            <footer class="intel-modal-actions"><button id="intelCaseCancelFooter" type="button" class="outline">Cancel</button><button id="intelCaseSave" type="submit" class="primary">Create case</button></footer>
+          </form>
+        </article>
+      </div>
+    </section>
+
+    <section id="panel-ipprivacy" class="panel ip-privacy-panel">
+      <div class="heading">
+        <div><p>NETWORK PRIVACY</p><h1>Daily IP Privacy</h1><small>Reconnect a saved Windows VPN profile every day and verify the public IP before and after.</small></div>
+        <span id="ipPrivacyState" data-state="idle">IDLE</span>
+      </div>
+      <div class="ip-privacy-hero">
+        <article class="ip-address-card">
+          <small>CURRENT PUBLIC IP</small><strong id="currentPublicIp">Not checked</strong><button id="checkPublicIpBtn" class="outline" type="button">Check public IP</button>
+          <div class="ip-route-line"><span></span><i></i><span></span></div>
+          <div class="ip-history"><span><small>PREVIOUS IP</small><b id="previousPublicIp">Not recorded</b></span><span><small>LAST ROTATION</small><b id="lastIpRotation">Never</b></span><span><small>NEXT RUN</small><b id="nextIpRotation">Not scheduled</b></span></div>
+        </article>
+        <article class="settings ip-scheduler-card">
+          <h3>VPN rotation scheduler</h3>
+          <p>CoreShift uses a Windows VPN profile and credentials saved by Windows. It never stores your VPN password.</p>
+          <label class="ip-field">Windows VPN profile<select id="ipVpnProfile"><option value="">Detecting profiles...</option></select></label>
+          <div class="ip-profile-actions"><button id="refreshVpnProfilesBtn" class="outline" type="button">Refresh profiles</button><button id="openVpnSettingsBtn" class="outline" type="button">Open Windows VPN setup</button></div>
+          <label class="ip-field">Daily reconnect time<input id="ipRotationTime" type="time" value="04:00"></label>
+          <label class="ip-switch"><span><b>Enable daily VPN reconnect</b><small>Runs at the selected time while CoreShift is open</small></span><input id="ipRotationEnabled" type="checkbox"><i></i></label>
+          <div class="ip-actions"><button id="saveIpPrivacyBtn" class="outline" type="button">Save schedule</button><button id="rotateIpNowBtn" class="primary" type="button">Rotate now</button></div>
+          <small id="ipPrivacyStatus">Select a detected VPN profile to begin.</small>
+        </article>
+      </div>
+      <article class="ip-truth-card"><b>What this actually changes</b><p>A VPN reconnect can change the public address websites see. It does not alter your ISP account or guarantee a new address—the VPN provider may reconnect to the same exit server. Windows DHCP renewal only refreshes a local network address, so CoreShift does not mislabel that as public-IP rotation.</p><span>Rotating disconnects active games, voice calls, downloads, and remote database sessions for a short time.</span></article>
+    </section>
+
+    <section id="panel-monitor" class="panel">
+      <div class="heading"><div><p>TELEMETRY</p><h1>System Monitor</h1><small id="osInfo">Live hardware and OS information.</small></div><button id="monitorRefreshBtn" class="outline">↻ Refresh now</button></div>
+      <div class="monitor-grid">
+        <div><small>CPU Usage</small><b id="monitorCpu">--%</b></div><div><small>Memory Usage</small><b id="monitorRam">--</b></div>
+        <div><small>Graphics</small><b id="monitorGpu">--</b></div><div><small>System</small><b id="monitorOs">--</b></div>
+        <div><small>CPU Model / Cores</small><b id="monitorCpuModel">--</b></div><div><small>Storage Free</small><b id="monitorDisk">--</b></div>
+        <div><small>Network Download</small><b id="monitorNetwork">--</b></div><div><small>Available Memory</small><b id="monitorAvailable">--</b></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS PANEL -->
+    <section id="panel-settings" class="panel">
+      <div class="heading">
+        <div><p>PREFERENCES</p><h1>Settings</h1><small>Configure capture, appearance, Discord, MySQL, and editable app content.</small></div>
+      </div>
+
+      <div class="settings-grid">
+
+        <!-- OVERLAY -->
+        <article class="settings">
+          <h3>Capture & overlay</h3>
+          <label><span><b>Enable FPS overlay</b><small>Show a small always-on-top frame counter</small></span><input id="overlayToggle" type="checkbox"><i></i></label>
+          <label><span><b>Enable instant replay</b><small>Keep the last minute ready after capture begins</small></span><input type="checkbox" checked><i></i></label>
+          <button id="cleanRamBtn" class="outline setting-btn">Trim background RAM</button>
+          <small id="ramCleanupStatus">Trims accessible background app working sets.</small>
+        </article>
+
+        <article class="settings appearance-settings">
+          <h3>Appearance studio</h3>
+          <p>Choose a Discord-style surface and a color that matches your setup.</p>
+          <div class="theme-picks"><button class="theme-pick active" data-theme="lime" data-accent="#b7ff35" style="--swatch:#b7ff35">Lime</button><button class="theme-pick" data-theme="blurple" data-accent="#5865f2" style="--swatch:#5865f2">Blurple</button><button class="theme-pick" data-theme="green" data-accent="#57f287" style="--swatch:#57f287">Green</button><button class="theme-pick" data-theme="fuchsia" data-accent="#eb459e" style="--swatch:#eb459e">Fuchsia</button><button class="theme-pick" data-theme="red" data-accent="#ed4245" style="--swatch:#ed4245">Red</button><button class="theme-pick" data-theme="yellow" data-accent="#fee75c" style="--swatch:#fee75c">Yellow</button><button class="theme-pick" data-theme="cyan" data-accent="#00a8fc" style="--swatch:#00a8fc">Cyan</button><button class="theme-pick" data-theme="teal" data-accent="#1abc9c" style="--swatch:#1abc9c">Teal</button><button class="theme-pick" data-theme="orange" data-accent="#e67e22" style="--swatch:#e67e22">Orange</button><button class="theme-pick" data-theme="violet" data-accent="#9b59b6" style="--swatch:#9b59b6">Violet</button><button class="theme-pick" data-theme="rose" data-accent="#ff73fa" style="--swatch:#ff73fa">Rose</button><button class="theme-pick" data-theme="silver" data-accent="#d7dce5" style="--swatch:#d7dce5">Silver</button><button class="theme-pick" data-theme="cobalt" data-accent="#3874ff" style="--swatch:#3874ff">Cobalt</button><button class="theme-pick" data-theme="coral" data-accent="#ff6f61" style="--swatch:#ff6f61">Coral</button><button class="theme-pick" data-theme="mint" data-accent="#72f1b8" style="--swatch:#72f1b8">Mint</button><button class="theme-pick" data-theme="amber" data-accent="#ffb020" style="--swatch:#ffb020">Amber</button></div>
+          <label class="color-control">Custom accent <input id="accentPicker" type="color" value="#b7ff35"></label>
+          <label class="appearance-select">Surface theme <select id="surfaceTheme"><option value="midnight">Midnight</option><option value="dark">Discord Dark</option><option value="ash">Ash</option><option value="light">Light</option></select></label>
+          <label class="appearance-range">Color intensity <input id="saturationRange" type="range" min="55" max="135" value="100"><output id="saturationOutput">100%</output></label>
+          <label class="appearance-range">Interface scale <input id="interfaceScaleRange" type="range" min="85" max="115" value="100"><output id="interfaceScaleOutput">100%</output></label>
+          <label class="appearance-range">Panel roundness <input id="roundnessRange" type="range" min="4" max="24" value="13"><output id="roundnessOutput">13px</output></label>
+          <label class="appearance-select">Text size <select id="textSizeSelect"><option value="small">Small</option><option value="standard">Standard</option><option value="large">Large</option></select></label>
+          <label class="appearance-select">Sidebar width <select id="sidebarWidthSelect"><option value="narrow">Narrow</option><option value="standard">Standard</option><option value="wide">Wide</option></select></label>
+          <label><span><b>Ambient motion</b><small>Enable dashboard light movement</small></span><input id="motionToggle" type="checkbox" checked><i></i></label>
+          <label><span><b>Accent glow</b><small>Show colored lighting around active controls</small></span><input id="glowToggle" type="checkbox" checked><i></i></label>
+          <label><span><b>Compact interface</b><small>Fit more controls on screen</small></span><input id="compactToggle" type="checkbox"><i></i></label>
+          <label><span><b>Background grid</b><small>Show the technical grid behind panels</small></span><input id="gridToggle" type="checkbox" checked><i></i></label>
+          <label><span><b>High contrast</b><small>Strengthen panel borders and important text</small></span><input id="contrastToggle" type="checkbox"><i></i></label>
+          <label><span><b>Panel shadows</b><small>Add depth beneath cards and dialogs</small></span><input id="shadowsToggle" type="checkbox" checked><i></i></label>
+          <label><span><b>Translucent panels</b><small>Use glass-like surfaces throughout the app</small></span><input id="transparencyToggle" type="checkbox" checked><i></i></label>
+          <button id="resetAppearanceBtn" type="button" class="outline setting-btn">Reset appearance</button>
+        </article>
+
+        <article class="settings discord-settings">
+          <h3>Discord Rich Presence</h3>
+          <p>Show CoreShift on your Discord profile whenever the app is open. Discord Desktop must be running.</p>
+          <label><span><b>Enable Discord status</b><small>Automatically publish your CoreShift activity at startup</small></span><input id="discordPresenceToggle" type="checkbox"><i></i></label>
+          <label class="discord-field">Discord Application ID<input id="discordClientId" inputmode="numeric" maxlength="20" placeholder="Enter your Discord Application ID"></label>
+          <label class="discord-field">Activity details<input id="discordDetails" maxlength="128" value="Using the CoreShift Desktop Suite"></label>
+          <label class="discord-field">Activity state<input id="discordState" maxlength="128" value="Game Control Center"></label>
+          <button id="saveDiscordPresenceBtn" class="primary">Save &amp; connect Discord</button>
+          <small id="discordPresenceStatus">Discord presence is not configured.</small>
+          <small class="discord-privacy-hint">If Discord confirms it but the status is hidden, open Discord → User Settings → Activity Privacy and enable <b>Share your detected activities with others</b>.</small>
+        </article>
+
+        <article class="settings updater-settings">
+          <div class="updater-title"><div><h3>CoreShift updates</h3><small>Installed version <b id="currentAppVersion">—</b></small></div><span id="updateStateBadge">READY</span></div>
+          <p>Check the shared release channel, securely download the newest installer, and restart into the update.</p>
+          <div class="update-progress" aria-hidden="true"><i id="updateProgressBar"></i></div>
+          <small id="updateStatus">Ready to check for updates.</small>
+          <div class="update-actions"><button id="checkUpdatesBtn" type="button" class="primary">Check for updates</button><button id="installUpdateBtn" type="button" class="outline" hidden>Restart &amp; install</button></div>
+          <div class="update-owner" data-update-owner hidden>
+            <b>Owner release source</b>
+            <label class="discord-field">HTTPS release folder<input id="updateFeedUrl" type="url"></label>
+            <label><span><b>Automatic startup check</b><small>Check quietly after MySQL connects</small></span><input id="updateAutoCheck" type="checkbox"><i></i></label>
+            <button id="saveUpdateConfigBtn" type="button" class="outline">Save source for all users</button>
+            <small>Paste a GitHub repository or release URL. CoreShift converts it to the secure update feed automatically. Releases must contain latest.yml, the installer, and its blockmap.</small>
+          </div>
+        </article>
+
+        <!-- MYSQL -->
+        <article class="settings">
+          <h3>XAMPP MySQL connection</h3>
+          <form id="mysqlForm" class="settings-form">
+            <label>Host<input id="mysqlHost" value="127.0.0.1"></label>
+            <label>Port<input id="mysqlPort" value="3306" type="number"></label>
+            <label>Username<input id="mysqlUser" value="root"></label>
+            <label>Password<input id="mysqlPassword" type="password"></label>
+            <label>Database<input id="mysqlDatabase" placeholder="coreshift"></label>
+            <button class="primary">Connect & save</button>
+          </form>
+          <button id="detectMysqlBtn" type="button" class="outline setting-btn">Auto-detect XAMPP</button>
+          <small id="mysqlHelp">Start MySQL in the XAMPP Control Panel.</small>
+        </article>
+
+        <!-- ADMIN PANEL -->
+        <article class="settings admin">
+          <h3>Admin panel</h3>
+          <p>Edit the text that appears in this desktop app.</p>
+          <label>Home title<input id="adminTitle" maxlength="80"></label>
+          <label>Home description<textarea id="adminDescription" maxlength="180"></textarea></label>
+          <label>Brand name<input id="adminBrand" maxlength="30"></label>
+          <button id="saveAdminBtn" class="primary">Save app content</button>
+        </article>
+
+        <!-- VIRUSTOTAL API KEY -->
+        <article class="settings">
+          <h3>VirusTotal</h3>
+          <p>Required for URL and file malware checks. Your key is stored locally on this PC.</p>
+          <label>API key<input id="virusTotalKey" type="password" placeholder="Paste your VirusTotal API key"></label>
+          <button id="saveVirusTotalBtn" class="primary">Save security settings</button>
+        </article>
+
+        <article class="settings feedback-card">
+          <h3>Leave feedback</h3>
+          <p>Tell us why something is not working or why you would stop using CoreShift. Feedback is saved to the configured database while the app is open.</p>
+          <form id="feedbackForm">
+            <select id="feedbackReason"><option>General feedback</option><option>Performance issue</option><option>Capture issue</option><option>Would uninstall</option><option>Feature request</option></select>
+            <textarea id="feedbackMessage" maxlength="1500" placeholder="What could we improve?" required></textarea>
+            <button class="primary">Send feedback</button>
+          </form>
+        </article>
+
+      </div>
+    </section>
+
+    <section id="panel-latency" class="panel latency-lab-panel">
+      <div class="heading"><div><p>NETWORK DIAGNOSTICS</p><h1>Latency Lab</h1><small>Measure game-server responsiveness, jitter, packet loss, DNS resolution, and adapter health.</small></div><div id="latencyStatus" class="latency-status">READY TO TEST</div></div>
+      <div class="latency-control-bar">
+        <label>TEST TARGET<input id="latencyHost" value="1.1.1.1" maxlength="253" autocomplete="off" spellcheck="false"></label>
+        <div class="latency-presets"><button data-latency-host="1.1.1.1">Cloudflare</button><button data-latency-host="8.8.8.8">Google DNS</button><button data-latency-host="gateway.discord.gg">Discord</button></div>
+        <button id="latencyTestBtn" class="primary">Run connection test</button>
+        <button id="latencyMonitorBtn" class="outline">Start live monitor</button>
+      </div>
+      <div class="latency-metrics">
+        <article><small>AVERAGE PING</small><strong id="latencyAverage">—</strong><span>Lower is better</span></article>
+        <article><small>JITTER</small><strong id="latencyJitter">—</strong><span>Connection stability</span></article>
+        <article><small>PACKET LOSS</small><strong id="latencyLoss">—</strong><span>Target is 0%</span></article>
+        <article class="latency-grade-card"><small>CONNECTION GRADE</small><strong id="latencyGrade">READY</strong><span id="latencyRange">No test recorded</span></article>
+      </div>
+      <div class="latency-grid">
+        <article class="latency-chart-card">
+          <header><div><small>ROLLING HISTORY</small><h3>Response time</h3></div><b id="latencyResolved">Awaiting target</b></header>
+          <canvas id="latencyChart" width="900" height="300" aria-label="Latency history chart"></canvas>
+          <div class="latency-chart-legend"><span><i></i>Ping milliseconds</span><span id="latencySampleCount">0 SAMPLES</span></div>
+        </article>
+        <aside class="latency-tools-card">
+          <header><small>ACTIVE CONNECTION</small><h3>Network adapter</h3></header>
+          <div id="latencyAdapter" class="latency-adapter">Loading adapter information…</div>
+          <button id="flushDnsBtn" class="outline">Flush Windows DNS cache</button>
+          <button id="copyLatencyReportBtn" class="outline">Copy latest report</button>
+          <small id="latencyToolStatus">These tools do not alter game files or anti-cheat software.</small>
+        </aside>
+      </div>
+      <div class="latency-grid latency-bottom-grid">
+        <article class="latency-saved-card">
+          <header><small>QUICK TARGETS</small><h3>Saved servers</h3></header>
+          <form id="latencySaveForm"><label>Name<input id="latencyTargetName" maxlength="40" required></label><label>Host<input id="latencyTargetHost" maxlength="253" required></label><button class="primary">Save target</button></form>
+          <div id="latencySavedTargets" class="latency-saved-list"></div>
+        </article>
+        <article class="latency-log-card">
+          <header><small>SESSION LOG</small><h3>Recent tests</h3></header>
+          <div id="latencyLog" class="latency-log"><div class="latency-empty">Run a test to begin the session log.</div></div>
+        </article>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast"></div>
+<div id="bootScreen" class="boot-screen">
+  <div class="boot-core">
+    <div class="boot-logo"><img src="icon.ico" alt=""><span>C</span></div>
+    <p>CORE<span>SHIFT</span></p>
+    <h1>Initializing your command center</h1>
+    <div class="boot-bar"><i></i></div>
+    <small id="bootStatus">Loading performance modules…</small>
+  </div>
+</div>
+<script src="modules/latency-lab.js"></script>
+<script src="renderer/modules/pia.js"></script>
+<script src="renderer/modules/clip-studio.js"></script>
+<script src="renderer/modules/booster.js"></script>
+<script src="renderer/modules/game-library.js"></script>
+<script src="renderer/modules/intelligence.js"></script>
+<script src="renderer.js"></script>
+</body>
+</html>

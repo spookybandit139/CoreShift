@@ -1,0 +1,78 @@
+:root {
+  --ui-radius: 13px;
+}
+
+body {
+  zoom: var(--ui-scale, 1);
+}
+
+body.sidebar-narrow .app-shell { grid-template-columns: 230px 1fr; }
+body.sidebar-wide .app-shell { grid-template-columns: 310px 1fr; }
+body.sidebar-narrow .main-content::before { left: 230px; }
+body.sidebar-wide .main-content::before { left: 310px; }
+
+body.no-background-grid .main-content::before { display: none; }
+
+body.flat-ui .settings,
+body.flat-ui .options,
+body.flat-ui .status-card,
+body.flat-ui .quick-grid button,
+body.flat-ui .orb-card,
+body.flat-ui .monitor-grid > div,
+body.flat-ui .auth-card { box-shadow: none !important; }
+
+body.opaque-panels .settings,
+body.opaque-panels .options,
+body.opaque-panels .status-card,
+body.opaque-panels .quick-grid button,
+body.opaque-panels .orb-card,
+body.opaque-panels .monitor-grid > div,
+body.opaque-panels .auth-card {
+  background-color: var(--surface, #121721) !important;
+  backdrop-filter: none !important;
+}
+
+body.high-contrast-ui .settings,
+body.high-contrast-ui .options,
+body.high-contrast-ui .status-card,
+body.high-contrast-ui .quick-grid button,
+body.high-contrast-ui .orb-card,
+body.high-contrast-ui .monitor-grid > div {
+  border-color: rgba(var(--accent-rgb), .5) !important;
+}
+body.high-contrast-ui .heading small,
+body.high-contrast-ui .settings p,
+body.high-contrast-ui .settings small { color: #d1d8e2 !important; }
+
+body.text-small .main-content { font-size: 92%; }
+body.text-large .main-content { font-size: 110%; }
+body.text-large .settings p,
+body.text-large .settings small,
+body.text-large .options small,
+body.text-large .nav-btn { font-size: 11px !important; }
+
+.settings,
+.options,
+.status-card,
+.quick-grid button,
+.orb-card,
+.monitor-grid > div,
+.profile,
+.auth-card,
+.clip-library-card,
+.clip-editor-card { border-radius: var(--ui-radius) !important; }
+
+.remember-login {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px;
+  padding: 10px !important;
+  border: 1px solid #343e4b !important;
+  border-radius: 7px;
+  background: #0d1117;
+  cursor: pointer;
+}
+.remember-login input { width: 16px !important; height: 16px; margin: 2px 0 0 !important; padding: 0 !important; accent-color: var(--accent); }
+.remember-login span { display: grid; gap: 2px; color: #e7ecf2; font-size: 11px; }
+.remember-login small { color: #8f9aa8; font-size: 9px; line-height: 1.35; }
+#logoutBtn { width: 100%; margin-top: 18px; }

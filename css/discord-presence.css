@@ -1,0 +1,12 @@
+.discord-settings .discord-privacy-hint {
+  padding: 8px;
+  border: 1px solid rgba(var(--accent-rgb), .18);
+  border-radius: 6px;
+  background: rgba(var(--accent-rgb), .05);
+  color: #aab5c2;
+}
+
+.discord-settings #discordPresenceStatus.connected {
+  color: var(--accent);
+  font-weight: 700;
+}

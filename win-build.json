@@ -1,0 +1,16 @@
+{{
+  "appId": "com.coreshift.app",
+  "productName": "CoreShift",
+  "directories": {
+    "output": "dist"
+  },
+  "win": {
+    "target": "nsis",
+    "icon": "icon.ico",
+    "sign": false
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

@@ -1,0 +1,58 @@
+<section id="panel-pia" class="panel pia-panel" aria-labelledby="piaTitle">
+  <div class="pia-backdrop" aria-hidden="true"></div>
+  <header class="heading pia-heading">
+    <div>
+      <p>ADMINISTRATIVE CHANNEL</p>
+      <h1 id="piaTitle">PIA</h1>
+      <small>Patriotism &amp; Immigration Authority — staff resources, team links, and operational formats.</small>
+    </div>
+    <div class="pia-admin-badge"><i></i><span><b>ADMIN ACCESS</b><small id="piaDatabaseStatus">Checking MySQL</small></span></div>
+  </header>
+
+  <div class="pia-summary">
+    <article><small>STAFF LINKS</small><strong id="piaLinkCount">0</strong><span>Saved resources</span></article>
+    <article><small>FORMAT LIBRARY</small><strong id="piaFormatCount">0</strong><span>Reusable formats</span></article>
+    <article class="pia-mission"><small>PIA RESOURCE DIRECTIVE</small><b>Keep staff information organized, current, and ready for authorized personnel.</b></article>
+  </div>
+
+  <div class="pia-tabs" role="tablist" aria-label="PIA sections">
+    <button class="active" type="button" data-pia-view="links" aria-selected="true">Staff Team Links</button>
+    <button type="button" data-pia-view="formats" aria-selected="false">Formats Library</button>
+  </div>
+
+  <section id="pia-view-links" class="pia-view active" aria-labelledby="piaLinksHeading">
+    <article class="pia-glass pia-editor">
+      <div class="pia-card-heading"><div><small>AUTHORIZED EDITOR</small><h2 id="piaLinksHeading">Staff team links</h2></div><span>MYSQL</span></div>
+      <form id="piaLinkForm">
+        <input id="piaLinkId" type="hidden">
+        <label>Team or division<input id="piaLinkTeam" maxlength="100" placeholder="Operations Leadership" required></label>
+        <label>Resource name<input id="piaLinkTitle" maxlength="120" placeholder="PIA Staff Documentation" required></label>
+        <label>Secure resource URL<input id="piaLinkUrl" type="url" maxlength="2048" placeholder="https://docs.google.com/..." required></label>
+        <label>Description<textarea id="piaLinkDescription" maxlength="500" rows="4" placeholder="Explain what staff members will find at this link."></textarea></label>
+        <div class="pia-form-actions"><button class="pia-primary" type="submit" id="piaLinkSubmit">Save staff link</button><button class="pia-secondary" type="button" id="piaLinkCancel" hidden>Cancel edit</button></div>
+      </form>
+    </article>
+    <article class="pia-glass pia-library">
+      <div class="pia-card-heading"><div><small>STAFF DIRECTORY</small><h2>Authorized resources</h2></div><button id="piaRefreshLinks" class="pia-icon-button" type="button">Refresh</button></div>
+      <div id="piaLinksList" class="pia-record-list" aria-live="polite"><div class="pia-empty">Connect MySQL to load PIA staff links.</div></div>
+    </article>
+  </section>
+
+  <section id="pia-view-formats" class="pia-view" aria-labelledby="piaFormatsHeading" hidden>
+    <article class="pia-glass pia-editor">
+      <div class="pia-card-heading"><div><small>FORMAT BUILDER</small><h2 id="piaFormatsHeading">Create a reusable format</h2></div><span>MYSQL</span></div>
+      <form id="piaFormatForm">
+        <input id="piaFormatId" type="hidden">
+        <label>Section<input id="piaFormatSection" maxlength="100" placeholder="Immigration Processing" required></label>
+        <label>Format title<input id="piaFormatTitle" maxlength="120" placeholder="Applicant Interview Record" required></label>
+        <label>Format content<textarea id="piaFormatContent" maxlength="100000" rows="13" placeholder="Applicant name:&#10;Case number:&#10;Interviewing officer:&#10;Summary:&#10;Decision:" required></textarea></label>
+        <div class="pia-form-actions"><button class="pia-primary" type="submit" id="piaFormatSubmit">Save format</button><button class="pia-secondary" type="button" id="piaFormatCancel" hidden>Cancel edit</button></div>
+      </form>
+    </article>
+    <article class="pia-glass pia-library">
+      <div class="pia-card-heading"><div><small>FORMAT INDEX</small><h2>Saved sections and formats</h2></div><button id="piaRefreshFormats" class="pia-icon-button" type="button">Refresh</button></div>
+      <label class="pia-filter">Filter library<input id="piaFormatFilter" type="search" placeholder="Search sections, titles, or content"></label>
+      <div id="piaFormatsList" class="pia-record-list pia-format-list" aria-live="polite"><div class="pia-empty">Connect MySQL to load PIA formats.</div></div>
+    </article>
+  </section>
+</section>

@@ -1,0 +1,98 @@
+.ip-privacy-panel { --ip-blue: #68d9ff; }
+
+#ipPrivacyState {
+  padding: 7px 10px;
+  border: 1px solid #344456;
+  border-radius: 999px;
+  color: #94a1af;
+  background: #101720;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+#ipPrivacyState[data-state="changed"] { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); }
+#ipPrivacyState[data-state="rotating"], #ipPrivacyState[data-state="checking"] { color: #ffcc6a; border-color: #725d32; }
+#ipPrivacyState[data-state="error"] { color: #ff7180; border-color: #713642; }
+
+.ip-privacy-hero {
+  display: grid;
+  grid-template-columns: 1.08fr .92fr;
+  gap: 18px;
+}
+
+.ip-address-card,
+.ip-truth-card {
+  border: 1px solid #304052;
+  background: linear-gradient(145deg, #142433, #0d141e 62%, #182037);
+  box-shadow: 0 20px 55px #0006;
+}
+
+.ip-address-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 365px;
+  padding: 31px;
+  border-radius: 8px 28px 8px 28px;
+}
+
+.ip-address-card::after {
+  content: '';
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -120px;
+  top: -130px;
+  border: 1px solid #68d9ff55;
+  border-radius: 50%;
+  box-shadow: 0 0 0 35px #68d9ff0a, 0 0 70px #68d9ff1f;
+}
+
+.ip-address-card > small { color: var(--ip-blue); font-size: 9px; font-weight: 900; letter-spacing: 1.8px; }
+.ip-address-card > strong { display: block; margin: 13px 0 18px; font: 700 29px Consolas, monospace; color: #f6fbff; overflow-wrap: anywhere; }
+.ip-address-card > button { position: relative; z-index: 2; }
+
+.ip-route-line { display: flex; align-items: center; margin: 48px 0 27px; }
+.ip-route-line span { width: 11px; height: 11px; border: 2px solid var(--ip-blue); border-radius: 50%; box-shadow: 0 0 13px #68d9ff88; }
+.ip-route-line i { flex: 1; height: 1px; margin: 0 7px; background: repeating-linear-gradient(90deg, #68d9ff 0 8px, transparent 8px 14px); animation: ip-route 1.2s linear infinite; }
+
+.ip-history { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.ip-history span { min-width: 0; padding: 12px; border: 1px solid #2d3b4a; border-radius: 8px; background: #0b1119aa; }
+.ip-history small, .ip-history b { display: block; }
+.ip-history small { color: #778698; font-size: 8px; letter-spacing: .9px; }
+.ip-history b { margin-top: 6px; color: #dce6ee; font-size: 10px; overflow-wrap: anywhere; }
+
+.ip-scheduler-card { max-width: none; text-align: left; }
+.ip-scheduler-card > p { margin-bottom: 11px; color: #8e9aa8; font-size: 11px; line-height: 1.5; }
+.ip-scheduler-card .ip-field { display: block !important; padding: 9px 0 !important; color: #b9c4ce; font-size: 10px; cursor: default; }
+.ip-scheduler-card .ip-field select,
+.ip-scheduler-card .ip-field input {
+  display: block !important;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid #3b4a5c;
+  border-radius: 7px;
+  background: #0b1119;
+  color: #f0f5f9;
+  outline: none;
+}
+.ip-scheduler-card .ip-field select:focus, .ip-scheduler-card .ip-field input:focus { border-color: var(--ip-blue); }
+.ip-profile-actions { display: grid; grid-template-columns: .8fr 1.2fr; gap: 8px; margin: 3px 0 7px; }
+.ip-profile-actions button { width: 100%; }
+.ip-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 13px 0 9px; }
+.ip-actions button { width: 100%; }
+#ipPrivacyStatus { display: block; color: #91a0af; line-height: 1.45; }
+
+.ip-truth-card { margin-top: 18px; padding: 18px 20px; border-radius: 8px 18px 8px 18px; }
+.ip-truth-card b { color: var(--ip-blue); font-size: 11px; }
+.ip-truth-card p { margin-top: 7px; color: #a5b1be; font-size: 11px; line-height: 1.55; }
+.ip-truth-card span { display: block; margin-top: 9px; color: #ffca73; font-size: 10px; }
+
+@keyframes ip-route { to { background-position: 14px 0; } }
+.no-motion .ip-route-line i { animation: none; }
+
+@media (max-width: 980px) {
+  .ip-privacy-hero { grid-template-columns: 1fr; }
+  .ip-history { grid-template-columns: 1fr; }
+}

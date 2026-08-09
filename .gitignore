@@ -1,0 +1,23 @@
+# Local secrets and credentials
+API.txt
+.env
+.env.*
+!.env.example
+
+# Dependencies and runtime data
+node_modules/
+CoreShift Clips/
+
+# Generated packages and release artifacts
+dist/
+release-ui-v*/
+
+# Local agent/editor state
+.agents/
+.codex/
+
+# Logs and operating-system clutter
+*.log
+*.tmp
+Thumbs.db
+Desktop.ini

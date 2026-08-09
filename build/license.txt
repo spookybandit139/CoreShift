@@ -1,0 +1,11 @@
+CoreShift Terms, Privacy and Audit Notice
+
+By installing and using CoreShift, you agree that:
+
+1. CoreShift is a local desktop tool. Features that use MySQL, community chat, or audit logging require a database configured by the app owner.
+2. After you accept the in-app notice and sign in, CoreShift records your account username, a random installation identifier, local network IP address, device hostname, and login time in the configured MySQL audit log.
+3. For fraud prevention and access auditing, CoreShift records a one-way SHA-256 hash derived from the system UUID. The raw hardware UUID is not stored. CoreShift does not intentionally collect a public internet IP address.
+4. VirusTotal file and URL checks are only performed after you explicitly request them. Files may be submitted to VirusTotal according to its service terms.
+5. Do not use CoreShift to violate game, service, or local laws and policies.
+
+If you do not agree, do not install or use CoreShift.

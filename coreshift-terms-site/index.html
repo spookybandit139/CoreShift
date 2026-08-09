@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CoreShift Terms of Service, privacy disclosures, and product safety rules.">
+  <meta name="theme-color" content="#080b12">
+  <title>CoreShift — Terms of Service</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="CoreShift legal home">
+      <span class="brand-mark" aria-hidden="true">C</span>
+      <span><strong>CoreShift</strong><small>Trust Center</small></span>
+    </a>
+    <nav aria-label="Page actions">
+      <a href="#privacy">Privacy</a>
+      <a href="#acceptable-use">Safety</a>
+      <button class="icon-button" id="themeButton" type="button" aria-label="Toggle color theme" title="Toggle color theme">◐</button>
+      <button class="print-button" id="printButton" type="button">Print / Save PDF</button>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Legal center · Version 1.0</span>
+        <h1>Clear rules for a powerful desktop suite.</h1>
+        <p class="lede">These Terms explain what CoreShift does, what you are responsible for, how connected services handle data, and the limits that keep the community and your PC safe.</p>
+        <div class="hero-actions">
+          <a class="primary-action" href="#terms">Read the terms</a>
+          <a class="secondary-action" href="#summary">View the short version</a>
+        </div>
+      </div>
+      <aside class="status-card" aria-label="Document status">
+        <span class="pulse-dot"></span>
+        <p>Current document</p>
+        <strong>Effective July 18, 2026</strong>
+        <dl>
+          <div><dt>Applies to</dt><dd>CoreShift desktop app</dd></div>
+          <div><dt>Operator</dt><dd>CoreShift project owner</dd></div>
+          <div><dt>Contact</dt><dd>In-app Feedback Center</dd></div>
+        </dl>
+      </aside>
+    </section>
+
+    <section class="notice" role="note">
+      <strong>Important:</strong>
+      <span>This is a product-specific legal draft, not legal advice. The operator should have qualified counsel review it before public launch, especially the privacy, age, consumer-rights, and governing-law sections.</span>
+    </section>
+
+    <section class="summary-grid" id="summary" aria-labelledby="summary-title">
+      <div class="section-heading">
+        <span class="eyebrow">Plain-language summary</span>
+        <h2 id="summary-title">The essentials at a glance</h2>
+      </div>
+      <div class="cards">
+        <article><span>01</span><h3>Your PC, your control</h3><p>Performance tools can change Windows settings and close processes. Review each action, save work, and use administrator access carefully.</p></article>
+        <article><span>02</span><h3>Your content stays yours</h3><p>You keep ownership of clips, messages, links, formats, wallpaper records, and other content you create, subject to rights needed to operate the service.</p></article>
+        <article><span>03</span><h3>Connected means shared</h3><p>Discord, VirusTotal, Google, YouTube, and other integrations have their own terms. Submitting a file or URL may send it outside CoreShift.</p></article>
+        <article><span>04</span><h3>Community rules apply</h3><p>No harassment, malware, piracy, credential theft, unlawful recording, cheating, or attempts to bypass permissions or security.</p></article>
+        <article><span>05</span><h3>Database responsibility</h3><p>If CoreShift connects to your XAMPP/MySQL server, the server owner controls hosting, access, backups, retention, and lawful operation of that data.</p></article>
+        <article><span>06</span><h3>No guaranteed FPS result</h3><p>Hardware, games, drivers, thermal limits, and background software differ. Performance and RAM results cannot be guaranteed.</p></article>
+      </div>
+    </section>
+
+    <div class="legal-layout" id="terms">
+      <aside class="toc-panel">
+        <label for="sectionSearch">Find a topic</label>
+        <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="sectionSearch" type="search" placeholder="Search these terms…" autocomplete="off"></div>
+        <p id="searchStatus" class="search-status" aria-live="polite"></p>
+        <nav id="toc" aria-label="Terms sections">
+          <a href="#acceptance">1. Acceptance</a>
+          <a href="#eligibility">2. Eligibility</a>
+          <a href="#accounts">3. Accounts</a>
+          <a href="#license">4. License</a>
+          <a href="#acceptable-use">5. Acceptable use</a>
+          <a href="#system-tools">6. System tools</a>
+          <a href="#recording">7. Clips and recording</a>
+          <a href="#overlays">8. Overlays and games</a>
+          <a href="#community">9. Community content</a>
+          <a href="#privacy">10. Data and privacy</a>
+          <a href="#mysql">11. MySQL/XAMPP</a>
+          <a href="#third-parties">12. Third parties</a>
+          <a href="#virustotal">13. Security scanning</a>
+          <a href="#discord">14. Discord presence</a>
+          <a href="#admin">15. Admin tools</a>
+          <a href="#ip">16. Intellectual property</a>
+          <a href="#updates">17. Updates</a>
+          <a href="#security">18. Security</a>
+          <a href="#disclaimers">19. Disclaimers</a>
+          <a href="#liability">20. Liability</a>
+          <a href="#termination">21. Termination</a>
+          <a href="#law">22. Legal terms</a>
+          <a href="#changes">23. Changes</a>
+          <a href="#contact">24. Contact</a>
+        </nav>
+      </aside>
+
+      <article class="terms-document" id="termsDocument">
+        <header>
+          <span class="eyebrow">CoreShift Terms of Service</span>
+          <h2>Terms that govern use of CoreShift</h2>
+          <p>Last updated and effective July 18, 2026</p>
+        </header>
+
+        <section id="acceptance" data-search="agreement consent installer electronic acceptance">
+          <h3><span>1</span> Acceptance and scope</h3>
+          <p>These Terms of Service (“Terms”) are an agreement between you and the operator of the CoreShift project (“CoreShift,” “we,” “us,” or “our”). They govern your download, installation, access to, and use of the CoreShift desktop application, its local services, community features, websites, updates, and related functionality (together, the “Service”).</p>
+          <p>By installing, creating an account, selecting an acceptance control, or using the Service, you confirm that you have read, understood, and agree to these Terms. If you do not agree, do not install or use CoreShift. If you use CoreShift for an organization, you represent that you have authority to bind that organization, and “you” includes the organization.</p>
+          <p>Some features display additional notices or require separate choices. Those feature-specific notices are incorporated into these Terms. If a feature-specific notice directly conflicts with these Terms, the feature-specific notice controls only for that feature.</p>
+        </section>
+
+        <section id="eligibility" data-search="age children minors parent guardian coppa">
+          <h3><span>2</span> Eligibility and age requirements</h3>
+          <p>You must be at least 13 years old to use CoreShift. If the law where you live requires a higher minimum age for an online service, you must meet that age. If you are under the age of legal majority where you live, a parent or legal guardian must review and agree to these Terms and supervise your use.</p>
+          <p>CoreShift is not directed to children under 13 and may not be used by them. Do not submit a child’s personal information. We may suspend an account and delete associated information if we reasonably believe the eligibility requirements are not met.</p>
+        </section>
+
+        <section id="accounts" data-search="account password username login credentials role permission ip hardware id">
+          <h3><span>3</span> Accounts, credentials, and roles</h3>
+          <p>You must provide accurate registration information, keep it current, protect your password, and promptly report suspected unauthorized access. You are responsible for activity performed through your account unless applicable law says otherwise. Do not share credentials, impersonate another person, create accounts through automated means, or attempt to obtain another user’s password.</p>
+          <p>CoreShift may support member, moderator, administrator, owner, or other roles. Roles grant capabilities, not ownership rights. The designated owner account controls role assignment and sensitive administration. You may use only the permissions actually granted to your account and must not bypass UI restrictions, alter role data directly, or exploit a defect to reach restricted functions.</p>
+          <p>Account and audit records may include a username, password hash, role, consent status, IP address, hostname, installation identifier, hashed hardware identifier, and login or security timestamps. Passwords should be stored as one-way hashes rather than readable text. No system can guarantee that credentials will never be compromised.</p>
+        </section>
+
+        <section id="license" data-search="software license personal commercial copy reverse engineer redistribute">
+          <h3><span>4</span> Limited software license</h3>
+          <p>Subject to these Terms, CoreShift grants you a limited, personal, revocable, non-exclusive, non-transferable, and non-sublicensable license to install and use the Service on devices you own or control for its intended purpose. CoreShift and its licensors retain all rights not expressly granted.</p>
+          <p>You may not sell, rent, sublicense, republish, remove proprietary notices from, or distribute modified copies of CoreShift without written permission. You may not reverse engineer, decompile, disassemble, extract source code from, or defeat technical protection in the Service except to the limited extent a restriction is prohibited by applicable law. You may not use CoreShift branding in a way that suggests sponsorship or endorsement.</p>
+        </section>
+
+        <section id="acceptable-use" data-search="rules abuse malware piracy harassment cheating hacking illegal">
+          <h3><span>5</span> Acceptable use and community safety</h3>
+          <p>You agree to use CoreShift lawfully and respectfully. You may not use the Service to:</p>
+          <ul>
+            <li>harass, threaten, stalk, exploit, defraud, dox, or impersonate anyone;</li>
+            <li>upload, distribute, create, test, or conceal malware, ransomware, credential stealers, destructive code, or instructions intended to compromise systems;</li>
+            <li>infringe copyright, trademark, privacy, publicity, contractual, or other rights;</li>
+            <li>record people, private communications, protected media, or gameplay where recording is prohibited or where required consent has not been obtained;</li>
+            <li>circumvent game anti-cheat systems, platform rules, bans, account restrictions, role checks, rate limits, authentication, or access controls;</li>
+            <li>interfere with servers, flood chat, scrape personal data, probe accounts, or perform unauthorized vulnerability testing;</li>
+            <li>share unlawful sexual content, exploitative content involving minors, credible threats, or instructions facilitating serious wrongdoing; or</li>
+            <li>use CoreShift, its chat, or its admin tools to violate any applicable law or third-party agreement.</li>
+          </ul>
+          <p>We may investigate suspected abuse, preserve relevant records where lawful, restrict functionality, remove content, or suspend access. Moderation decisions may be based on context, severity, repeat behavior, and safety risk.</p>
+        </section>
+
+        <section id="system-tools" data-search="fps boost ram cache memory process power plan windows restore performance">
+          <h3><span>6</span> FPS, RAM, and system utilities</h3>
+          <p>CoreShift performance tools may request elevated Windows privileges; change power plans or process priorities; reduce background activity; ask Windows to trim process working sets; clear selected temporary data; or stop user-selected processes. These actions can affect battery life, heat, fan noise, application state, network behavior, visual quality, stability, and unsaved work.</p>
+          <p>“RAM cleanup,” “cache cleanup,” and similar labels describe requests made to Windows or running processes. They do not create physical memory, upgrade hardware, guarantee lower memory use, or guarantee a measurable FPS increase. Windows may refill caches when useful. Performance depends on the game, drivers, hardware, thermal conditions, configuration, and other software.</p>
+          <p>Review every optimization before applying it, save your work, and create an appropriate restore point or backup. Do not disable security software or essential services merely to increase a benchmark. You are responsible for deciding whether a system change is appropriate and for reversing it when necessary.</p>
+        </section>
+
+        <section id="recording" data-search="clips recording video audio microphone editing storage consent copyright">
+          <h3><span>7</span> Clips, recording, and media editing</h3>
+          <p>Clip features may capture a screen, application window, game, system audio, or microphone when enabled and supported. You are responsible for choosing the source, confirming the recording indicator, obtaining all legally required permissions, and following game, platform, workplace, school, and voice-chat rules. Recording laws vary by location and may require consent from all participants.</p>
+          <p>Clips and edited exports are saved to the location shown in CoreShift. You are responsible for available disk space, backups, file naming, deletion, and preventing unauthorized access. Editing or trimming a clip creates a new media file or replaces a file only when the UI clearly says so. Interrupted captures, driver limitations, codecs, protected content, or insufficient resources may produce incomplete or unusable clips.</p>
+          <p>You retain rights you already hold in your recordings. You must not capture or distribute copyrighted broadcasts, music, confidential material, personal data, or another person’s voice or likeness without authorization.</p>
+        </section>
+
+        <section id="overlays" data-search="fps counter crosshair overlay anti-cheat game rules wallpaper">
+          <h3><span>8</span> Overlays, crosshairs, games, and desktop changes</h3>
+          <p>FPS counters, crosshairs, widgets, Discord presence, and other overlays may be visible above games. Some games, leagues, servers, or anti-cheat products restrict overlays or third-party tools. CoreShift does not promise that any feature is permitted by a specific game or competition. Check the applicable rules before enabling it.</p>
+          <p>CoreShift is not responsible for warnings, suspensions, bans, ranking changes, lost progress, or other action taken by a game or platform. Crosshairs are visual aids only and must not be used to circumvent competitive rules. Wallpaper and desktop customization features may change operating-system preferences; preserve original files and verify that you have rights to each image.</p>
+        </section>
+
+        <section id="community" data-search="chat message gif emoji content moderation retention links formats pia">
+          <h3><span>9</span> Community chat and shared content</h3>
+          <p>Community areas may store and reload messages, emojis, GIF references, links, tips, staff resources, formats, and other user content from a connected database. Treat shared channels as visible to other authorized users. Do not post passwords, API keys, private addresses, financial information, protected health information, classified material, or content you are not authorized to disclose.</p>
+          <p>You keep ownership of your content. You grant CoreShift a worldwide, non-exclusive, royalty-free license to host, copy, transmit, display, format, and moderate it only as reasonably necessary to provide, secure, and improve the Service. This license ends when the content is deleted from active systems, subject to backups, legal holds, and records needed for security or compliance.</p>
+          <p>You are responsible for your content and interactions. We do not endorse user content and do not guarantee its accuracy, safety, permanence, or availability. Report abuse using the in-app Feedback Center. We may remove content or limit accounts that violate these Terms.</p>
+        </section>
+
+        <section id="privacy" data-search="privacy data collection ip hardware identifier retention deletion audit">
+          <h3><span>10</span> Data and privacy disclosures</h3>
+          <p>Depending on the features you use and the configuration of the connected database, CoreShift may process: account names and password hashes; role and permission data; messages and content; links and saved formats; clip metadata; preferences; consent history; feedback; security events; IP address; device hostname; installation identifier; hashed hardware identifier; operating-system and performance information; database connection settings; and third-party API credentials.</p>
+          <p>CoreShift uses this information to authenticate accounts, provide saved features, synchronize content, display system status, prevent abuse, enforce permissions, diagnose failures, maintain audit records, and operate requested integrations. Some data remains on your PC; some is stored in the MySQL server configured by the operator; and some is sent to a third party only when you activate an integration.</p>
+          <p>Data is retained while needed to operate the relevant feature, maintain security and audit records, resolve disputes, comply with law, or preserve backups. Database operators should establish specific retention and deletion schedules. You may request access, correction, or deletion through the in-app Feedback Center, subject to identity verification and legal or security exceptions. Local files and settings must be removed from the relevant PC by its owner.</p>
+          <p>Do not use CoreShift to collect personal data unless you have a lawful basis, provide required notices, honor applicable privacy rights, and secure the data. The operator of a separately configured MySQL server may be independently responsible for that server’s privacy compliance.</p>
+        </section>
+
+        <section id="mysql" data-search="database mysql xampp localhost server backup sql studio administrator">
+          <h3><span>11</span> MySQL, XAMPP, and database control</h3>
+          <p>CoreShift can connect to a MySQL-compatible server, including a server managed through XAMPP. Automatic detection is a convenience and is not a security guarantee. The person who configures or controls that server is responsible for lawful hosting, user notices, credentials, firewall rules, encryption, remote access, schema changes, backups, retention, restoration, and database availability.</p>
+          <p>Database Studio and similar controls can read, create, modify, or delete records. They are intended only for explicitly authorized administrators. Before running a query or schema operation, verify the target server and maintain a tested backup. CoreShift is not a managed database host and does not guarantee recovery from an incorrect query, damaged database, lost password, XAMPP failure, or unauthorized server exposure.</p>
+          <p>Do not expose a default root account or an unencrypted database to the public internet. Use a dedicated least-privilege database user, strong credentials, network restrictions, patches, and transport encryption appropriate to the environment.</p>
+        </section>
+
+        <section id="third-parties" data-search="google youtube docs browser external site api third party">
+          <h3><span>12</span> Third-party services and external content</h3>
+          <p>CoreShift may open or integrate with Discord, VirusTotal, Google Docs, YouTube, websites shown in an embedded browser, game platforms, media providers, or other third parties. Those services are independent of CoreShift and governed by their own terms, privacy policies, content rules, availability, and account requirements.</p>
+          <p>Links are provided for convenience and do not imply endorsement. Review the destination before opening it. CoreShift is not responsible for third-party content, advertisements, tracking, purchases, account actions, outages, malware, policy changes, or data practices. You authorize CoreShift to transmit the information needed to perform an integration you deliberately activate.</p>
+        </section>
+
+        <section id="virustotal" data-search="virus total malware api key url file scan vendor security sample">
+          <h3><span>13</span> VirusTotal and security checks</h3>
+          <p>The URL and file checker uses the VirusTotal API when you provide a valid API key and initiate a check. A URL check sends the submitted URL to VirusTotal. A file check may first send a cryptographic hash and, when no matching report exists and you choose or permit upload, may send the file itself. VirusTotal and its security community may retain, analyze, and share submitted samples according to the current <a class="inline-link" href="https://docs.virustotal.com/docs/terms-of-service" target="_blank" rel="noopener noreferrer">service terms</a> and <a class="inline-link" href="https://docs.virustotal.com/docs/privacy-policy" target="_blank" rel="noopener noreferrer">privacy notice</a>.</p>
+          <p>Never submit confidential, personal, privileged, proprietary, export-controlled, or restricted material unless you are authorized and understand the recipient’s handling rules. A “clean,” “undetected,” or low-detection result does not prove safety; a detection does not prove maliciousness. Results are informational and require judgment. API keys are personal credentials—protect them and follow provider limits.</p>
+        </section>
+
+        <section id="discord" data-search="discord rich presence application id status rpc profile privacy">
+          <h3><span>14</span> Discord Rich Presence</h3>
+          <p>When Discord Rich Presence is enabled, CoreShift connects to a compatible Discord desktop client and requests that Discord display activity such as “Using the CoreShift Desktop Suite” on your Discord profile. The integration uses Discord application ID <code>1414846841371099156</code>. Visibility is controlled by Discord, its settings, your account, and the audiences permitted to see your activity.</p>
+          <p>You can disable the feature in CoreShift settings or through Discord privacy/activity controls. CoreShift does not receive your Discord password through Rich Presence. Discord’s current <a class="inline-link" href="https://discord.com/terms" target="_blank" rel="noopener noreferrer">terms</a>, <a class="inline-link" href="https://discord.com/privacy" target="_blank" rel="noopener noreferrer">privacy policy</a>, developer rules, and service availability apply.</p>
+        </section>
+
+        <section id="admin" data-search="administrator owner mysql studio pia authority staff immigration government audit">
+          <h3><span>15</span> Administrator, audit, and PIA workspaces</h3>
+          <p>Sensitive panels—including MySQL Studio, API credential controls, audit records, and role management—are restricted to accounts granted the required role. The owner account is the final authority for granting administrative access. A UI label is not a substitute for server-side authorization; operators must keep permission checks enabled in the main process and database layer.</p>
+          <p>The “PIA — Patriotism &amp; Immigration Authority” channel is a user-created, private organizational workspace for staff links and formats. It is not a government agency, does not provide immigration or legal services, and is not affiliated with or endorsed by any national, state, local, or international government or immigration authority. Users must not present it otherwise.</p>
+          <p>Audit logs are security records. Access them only for legitimate administration, do not use them to stalk or intimidate users, and do not export them without authorization. IP addresses and hashed device identifiers remain personal or sensitive data in many jurisdictions even when used for security.</p>
+        </section>
+
+        <section id="ip" data-search="intellectual property copyright user content feedback trademarks">
+          <h3><span>16</span> Intellectual property and feedback</h3>
+          <p>CoreShift software, visual design, branding, documentation, and original assets are owned by CoreShift or its licensors and protected by applicable intellectual-property laws. Third-party names, games, services, GIFs, media, and trademarks belong to their respective owners.</p>
+          <p>You represent that you have the rights needed for content you upload or share. If you believe content available through CoreShift infringes your rights, send a report through the in-app Feedback Center identifying the work, the disputed material, its location, your contact method, and the basis for your claim.</p>
+          <p>If you submit ideas, bug reports, or product feedback, you grant CoreShift a perpetual, worldwide, non-exclusive, royalty-free right to use, adapt, and incorporate that feedback without payment or attribution, while you retain ownership of any rights you may have in it.</p>
+        </section>
+
+        <section id="updates" data-search="update feature availability beta experimental deprecation">
+          <h3><span>17</span> Updates and feature availability</h3>
+          <p>CoreShift may install or offer updates that add, modify, repair, secure, or remove features. Features may depend on Windows, hardware, drivers, local permissions, network access, a configured database, or third-party APIs. We may limit, suspend, replace, or discontinue a feature where reasonably necessary for safety, compliance, maintenance, or product development.</p>
+          <p>Preview, beta, and experimental features may be incomplete, unstable, or changed without notice. Back up important content before using them. Continued use after an update remains subject to the current Terms.</p>
+        </section>
+
+        <section id="security" data-search="security breach obfuscation encryption vulnerability no guarantee">
+          <h3><span>18</span> Security and responsible reporting</h3>
+          <p>CoreShift uses reasonable technical controls, but no application, obfuscation method, database, network, or storage system is immune from compromise. Obfuscation can discourage casual copying but is not encryption and cannot guarantee that code will remain secret. Keep Windows, CoreShift, XAMPP, MySQL, drivers, and security software patched.</p>
+          <p>Do not publish an unpatched vulnerability, access data beyond what is necessary to demonstrate an issue, disrupt service, demand payment through threats, or test accounts and systems without permission. Report suspected vulnerabilities through the in-app Feedback Center with enough detail to reproduce the issue safely.</p>
+        </section>
+
+        <section id="disclaimers" data-search="warranty as is performance availability errors data loss">
+          <h3><span>19</span> Disclaimers</h3>
+          <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, CORESHIFT IS PROVIDED “AS IS” AND “AS AVAILABLE.” CORESHIFT DISCLAIMS IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, QUIET ENJOYMENT, AND WARRANTIES ARISING FROM COURSE OF DEALING OR USAGE.</p>
+          <p>WE DO NOT WARRANT THAT CORESHIFT WILL BE UNINTERRUPTED, ERROR-FREE, SECURE, COMPATIBLE WITH EVERY GAME OR DEVICE, OR THAT IT WILL IMPROVE FPS, REDUCE LATENCY, FREE A PARTICULAR AMOUNT OF RAM, DETECT EVERY THREAT, RECOVER DATA, OR PREVENT A GAME OR PLATFORM ENFORCEMENT ACTION. NOTHING IN THESE TERMS EXCLUDES A WARRANTY OR CONSUMER RIGHT THAT CANNOT LAWFULLY BE EXCLUDED.</p>
+        </section>
+
+        <section id="liability" data-search="limitation liability damages indemnity losses">
+          <h3><span>20</span> Limitation of liability and indemnity</h3>
+          <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, CORESHIFT AND ITS CONTRIBUTORS WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, PUNITIVE, OR CONSEQUENTIAL DAMAGES; LOST PROFITS, REVENUE, GOODWILL, DATA, CLIPS, ACCOUNT ACCESS, OR GAME PROGRESS; DEVICE OR DATABASE DAMAGE; OR THE COST OF SUBSTITUTE SERVICES ARISING FROM OR RELATED TO CORESHIFT, EVEN IF ADVISED THAT SUCH LOSS IS POSSIBLE.</p>
+          <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, CORESHIFT’S TOTAL LIABILITY FOR ALL CLAIMS ARISING FROM THE SERVICE WILL NOT EXCEED THE GREATER OF THE AMOUNT YOU PAID FOR CORESHIFT DURING THE SIX MONTHS BEFORE THE EVENT GIVING RISE TO THE CLAIM OR US$50. Some jurisdictions do not allow certain exclusions or limits, so parts of this section may not apply to you.</p>
+          <p>You agree to defend and indemnify CoreShift and its contributors from third-party claims, damages, and reasonable costs arising from your unlawful use, your content, your violation of these Terms, or your violation of another person’s rights, except to the extent the claim resulted from CoreShift’s own unlawful conduct and except where such an obligation is prohibited by law.</p>
+        </section>
+
+        <section id="termination" data-search="suspend terminate uninstall account deletion survival">
+          <h3><span>21</span> Suspension, termination, and uninstallation</h3>
+          <p>You may stop using CoreShift and uninstall it at any time. Uninstallation may not delete clips stored outside the install directory, records stored in MySQL, backups, or settings retained by Windows. Remove those separately if desired and authorized.</p>
+          <p>We may warn, restrict, suspend, or terminate access where we reasonably believe you violated these Terms, created a safety or security risk, exposed the Service or others to legal liability, or where continued operation is no longer practical. Where appropriate, you may ask for review through the in-app Feedback Center.</p>
+          <p>Sections that by their nature should survive termination—including ownership, content responsibility, disclaimers, liability limits, indemnity, dispute terms, and accrued rights—will survive.</p>
+        </section>
+
+        <section id="law" data-search="law disputes jurisdiction export sanctions severability assignment entire agreement">
+          <h3><span>22</span> Governing law and general legal terms</h3>
+          <p>Before filing a formal claim, you and CoreShift agree to make a good-faith effort for 30 days to resolve it through the in-app Feedback Center, unless urgent injunctive relief is reasonably necessary. These Terms are governed by the laws applicable at CoreShift’s principal place of operation, without regard to conflict-of-law rules, while preserving any mandatory consumer protections that apply where you live. Claims must be brought in a court with lawful jurisdiction and proper venue.</p>
+          <p>You must comply with applicable trade, sanctions, export-control, privacy, recording, consumer, and computer-misuse laws. You may not use or export CoreShift where prohibited. If any provision is unenforceable, it will be narrowed only as much as necessary and the remaining provisions remain effective.</p>
+          <p>Failure to enforce a provision is not a waiver. You may not assign these Terms without our consent; CoreShift may assign them in connection with a reorganization, transfer, or succession of the Service. These Terms and incorporated notices are the entire agreement about the Service and replace prior discussions on that subject.</p>
+        </section>
+
+        <section id="changes" data-search="terms changes notice effective date">
+          <h3><span>23</span> Changes to these Terms</h3>
+          <p>We may update these Terms to reflect product, legal, security, or operational changes. The page will show a new effective date. For material changes, we will provide reasonable notice through the Service, installer, website, or another appropriate channel. Where law requires consent, we will request it.</p>
+          <p>If you do not agree to updated Terms, stop using and uninstall CoreShift before they take effect. Continued use after the effective date means you accept the revised Terms to the extent permitted by law.</p>
+        </section>
+
+        <section id="contact" data-search="contact support feedback privacy request report">
+          <h3><span>24</span> Contact and requests</h3>
+          <p>Use the <strong>Feedback Center</strong> inside CoreShift for support, privacy requests, abuse reports, account questions, security disclosures, and legal notices. Include the account name involved, the request type, relevant dates, and enough detail to locate the issue. Do not include passwords, full API keys, or unnecessary sensitive data.</p>
+          <p>If you received CoreShift through a private distribution channel and cannot access the Feedback Center, contact the person or organization that provided your installer so the request can be delivered to the CoreShift operator.</p>
+        </section>
+
+        <footer class="document-footer">
+          <div><span class="brand-mark small" aria-hidden="true">C</span><p><strong>CoreShift</strong><br>Terms of Service · Version 1.0</p></div>
+          <a href="#top">Back to top ↑</a>
+        </footer>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 CoreShift. All rights reserved.</p>
+    <p>CoreShift is an independent desktop project and is not affiliated with Discord, Google, VirusTotal, Microsoft, or any game publisher.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
