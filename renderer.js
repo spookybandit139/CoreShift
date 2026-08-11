@@ -22,6 +22,20 @@ function finishBoot() {
   setTimeout(() => screen.remove(), 700);
 }
 function escapeHtml(value) { const node = document.createElement('div'); node.textContent = value || ''; return node.innerHTML; }
+function setCoreModeActive(name, launcherView = 'library') {
+  const buttons = $$('[data-top-panel]');
+  const target = buttons.find(button => button.dataset.topPanel === name && (name !== 'launcher' || button.dataset.launcherView === launcherView))
+    || buttons.find(button => button.dataset.topPanel === name);
+  buttons.forEach(button => button.classList.toggle('active', button === target));
+}
+function showLauncherPage(pageName = 'library') {
+  $$('[data-launcher-page]').forEach(page => {
+    const selected = page.dataset.launcherPage === pageName;
+    page.hidden = !selected;
+    page.classList.toggle('active', selected);
+  });
+  $$('[data-launcher-page-button]').forEach(button => button.classList.toggle('active', button.dataset.launcherPageButton === pageName));
+}
 function showPanel(name) {
   if (name !== 'latency') window.LatencyLab?.onHide?.();
   if ((name === 'database' || name === 'pia') && account?.role !== 'admin') {
@@ -38,6 +52,7 @@ function showPanel(name) {
   }
   $$('.panel').forEach(node => node.classList.toggle('visible', node.id === 'panel-' + name));
   $$('.nav-btn').forEach(node => node.classList.toggle('active', node.dataset.panel === name));
+  setCoreModeActive(name);
   if (name === 'monitor' || name === 'overview') refreshStats();
   if (name === 'chat') loadChat();
   if (name === 'clips') window.CoreShiftClipStudio?.refresh?.();
@@ -50,6 +65,20 @@ window.coreShiftShowPanel = showPanel;
 window.coreShiftToast = toast;
 $$('.nav-btn').forEach(button => button.addEventListener('click', () => showPanel(button.dataset.panel)));
 $$('[data-go]').forEach(button => button.addEventListener('click', () => showPanel(button.dataset.go)));
+$$('[data-top-panel]').forEach(button => button.addEventListener('click', () => {
+  const panel = button.dataset.topPanel;
+  const launcherView = button.dataset.launcherView || 'library';
+  if (panel === 'launcher') showLauncherPage(launcherView);
+  showPanel(panel);
+  setCoreModeActive(panel, launcherView);
+}));
+$$('[data-launcher-page-button], [data-launcher-page-jump]').forEach(button => button.addEventListener('click', () => {
+  const page = button.dataset.launcherPageButton || button.dataset.launcherPageJump;
+  if (!page) return;
+  showLauncherPage(page);
+  showPanel('launcher');
+  setCoreModeActive('launcher', page);
+}));
 
 async function refreshStats() {
   try {

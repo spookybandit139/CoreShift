@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>CoreShift — Game Control Center</title>
+  <title>CoreShift — Intelligence &amp; Game Control</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="modules/latency-lab.css">
   <link rel="stylesheet" href="css/pia.css">
@@ -22,7 +22,7 @@
 <body>
 <div class="app-shell">
   <header class="top-bar">
-    <div class="brand"><img src="icon.ico" alt="CoreShift logo"><b id="brandName">CORE<span>SHIFT</span></b><small>GAME CONTROL CENTER</small></div>
+    <div class="brand"><img src="icon.ico" alt="CoreShift logo"><b id="brandName">CORE<span>SHIFT</span></b><small>INTELLIGENCE + GAME CONTROL</small></div>
     <div class="system-ready"><em></em> System ready</div>
     <div class="top-actions"><button id="minimizeBtn">—</button><button id="closeBtn">×</button></div>
   </header>
@@ -30,8 +30,10 @@
   <aside class="sidebar">
     <div class="profile"><i id="profileInitial">G</i><div><b id="profileName">Guest</b><small id="profileRole">Sign in to chat</small></div><button id="loginBtn">Log in</button></div>
     <nav>
-      <p>CONTROL CENTER</p>
-      <button class="nav-btn active" data-panel="launcher"><i>▦</i>Game Launcher</button>
+      <p>RESEARCH WORKSPACE</p>
+      <button class="nav-btn active" data-panel="intelligence"><i>⌖</i>Intelligence <small>NEW</small></button>
+      <p class="spacer">GAME CONTROL</p>
+      <button class="nav-btn" data-panel="launcher"><i>▦</i>Game Launcher</button>
       <button class="nav-btn" data-panel="overview"><i>⌘</i>Overview</button>
       <button class="nav-btn" data-panel="boost"><i>↗</i>FPS Boost</button>
       <button class="nav-btn" data-panel="clips"><i>◉</i>Clips</button>
@@ -42,19 +44,19 @@
       <button id="discordBotNav" class="nav-btn" data-panel="bot" hidden><i>◆</i>Bot Command Center <small>OWNER</small></button>
       <button class="nav-btn" data-panel="pia" hidden><i>▣</i>PIA <small>ADMIN</small></button>
       <button class="nav-btn" data-panel="security"><i>◈</i>Security Check</button>
-      <button class="nav-btn" data-panel="intelligence"><i>⌖</i>Intelligence</button>
       <p class="spacer">SYSTEM</p>
       <button class="nav-btn" data-panel="monitor"><i>⌁</i>System Monitor</button>
       <button id="ipPrivacyNav" class="nav-btn" data-panel="ipprivacy" hidden><i>◎</i>Daily IP Privacy <small>OWNER</small></button>
       <button class="nav-btn" data-panel="settings"><i>⚙</i>Settings</button>
     </nav>
-    <div class="sidebar-footer"><em></em> CoreShift Engine <b>v1.0</b></div>
+    <div class="sidebar-footer"><em></em> CoreShift Intelligence <b>v1.11.0</b></div>
   </aside>
 
   <main class="main-content">
 
     <div class="core-mode-rail" role="navigation" aria-label="CoreShift modes">
-      <button class="active" type="button" data-top-panel="launcher" data-launcher-view="library">Launcher</button>
+      <button class="active" type="button" data-top-panel="intelligence">Intelligence <small>NEW</small></button>
+      <button type="button" data-top-panel="launcher" data-launcher-view="library">Launcher</button>
       <button type="button" data-top-panel="boost">Booster</button>
       <button type="button" data-top-panel="launcher" data-launcher-view="deals">Deals</button>
       <button type="button" data-top-panel="launcher" data-launcher-view="rewards">Rewards</button>
@@ -63,7 +65,7 @@
     </div>
 
     <!-- GAME LAUNCHER PANEL -->
-    <section id="panel-launcher" class="panel visible launcher-panel">
+    <section id="panel-launcher" class="panel launcher-panel">
       <div class="launcher-subnav" role="tablist" aria-label="Launcher sections">
         <button class="active" type="button" data-launcher-page-button="library">My Library</button>
         <button type="button" data-launcher-page-button="platforms">Platforms</button>
@@ -531,7 +533,7 @@ LIMIT 5;</textarea>
     </section>
 
     <!-- LOCAL-FIRST INTELLIGENCE WORKSPACE -->
-    <section id="panel-intelligence" class="panel intelligence-panel" aria-label="CoreShift Intelligence workspace">
+    <section id="panel-intelligence" class="panel visible intelligence-panel" aria-label="CoreShift Intelligence workspace">
       <div class="intel-shell">
         <aside class="intel-module-rail" aria-label="Intelligence modules">
           <div class="intel-brand" aria-label="CoreShift Intelligence">
@@ -787,7 +789,6 @@ LIMIT 5;</textarea>
 <script src="renderer/modules/pia.js"></script>
 <script src="renderer/modules/clip-studio.js"></script>
 <script src="renderer/modules/booster.js"></script>
-<script src="renderer/modules/game-library.js"></script>
 <script src="renderer/modules/intelligence.js"></script>
 <script src="renderer.js"></script>
 </body>
