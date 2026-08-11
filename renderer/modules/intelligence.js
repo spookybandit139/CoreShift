@@ -9,6 +9,7 @@
   const GROUPS = ['Core', 'Intelligence', 'US Search', 'Infrastructure', 'Social', 'Tools'];
   const MODULES = [
     ['dashboard', 'Dashboard', 'Core', 'Local workspace overview', 'dashboard'],
+    ['guided-workflow', 'Guided Workflow', 'Core', 'Case → Discord → Roblox → provider research path', 'workflow'],
     ['activity', 'Activity', 'Core', 'Session actions without raw queries', 'activity'],
     ['cases', 'Cases', 'Core', 'Authorized research cases and evidence', 'cases'],
     ['web-databases', 'Web Databases', 'Intelligence', 'Plan authorized checks across named providers', 'databases'],
@@ -90,8 +91,9 @@
     return ' local';
   };
   const setBusy = busy => { stage.setAttribute('aria-busy', String(busy)); };
+  const setSessionMode = mode => { const node = byId('intelSessionMode'); if (node) node.textContent = mode; };
   const setEgress = message => { byId('intelEgressNotice').textContent = message; };
-  const resetEgress = () => setEgress('No network request is running. Live providers require confirmation for every lookup.');
+  const resetEgress = () => { setSessionMode('LOCAL FIRST'); setEgress('No network request is running. Live providers require confirmation for every lookup.'); };
 
   function log(moduleId, action, status = 'complete') {
     state.activity.unshift({ id: uid('event'), moduleId, action, status, at: new Date().toISOString() });
@@ -236,6 +238,7 @@
       cancelActiveRequest();
       const controller = new AbortController(); const requestId = ++state.requestSerial;
       state.requestController = controller; confirm.disabled = true; state.liveRuns += 1; log(module.id, `Started a ${provider} request`, 'running');
+      setSessionMode('LIVE · CONSENTED');
       setEgress(`One request is running against ${new URL(url).hostname}.`); loading(module, `Contacting ${provider}…`);
       try {
         const packet = await fetchJson(url, controller);
@@ -291,7 +294,7 @@
       const node = el('article', 'intel-stat-card'); add(node, el('small', '', label), el('strong', '', value)); add(stats, node);
     }); add(root, stats);
     const quickGrid = el('div', 'intel-quick-grid');
-    ['usernames', 'github', 'ip-info', 'dns-recon', 'evidence-hash', 'url-inspector'].forEach(id => {
+    ['guided-workflow', 'discord', 'roblox', 'web-databases', 'github', 'ip-info', 'dns-recon', 'evidence-hash'].forEach(id => {
       const item = moduleById(id); add(quickGrid, btn(item.label, 'intel-btn', () => renderModule(id)));
     }); add(root, card('Quick modules', quickGrid));
     const lower = el('div', 'intel-dashboard-grid');
@@ -303,6 +306,43 @@
       el('p', '', `Started: ${stamp(state.startedAt)}`), el('p', 'intel-notice', 'No background lookup is enabled. Provider egress always requires a click.'),
       el('p', 'intel-warning', 'Double Counter Bypass and automatic Discord alt identification are explicitly excluded.'));
     add(lower, card('Recent activity', recentBody), card('Session & notifications', sessionBody)); add(root, lower); stage.replaceChildren(root);
+  }
+
+  function renderGuidedWorkflow(module) {
+    const root = viewHeader(module, 'CASE → DISCORD → ROBLOX → PROVIDER');
+    add(root, el('p', 'intel-notice', 'This path records only explicit analyst inputs and public-source plans. It does not infer identities, retrieve private data, or claim that accounts are connected.'));
+    const flow = el('div', 'intel-connection-grid'); const current = activeCase();
+
+    const caseBody = el('div');
+    add(caseBody, el('p', '', current ? `Active case: ${current.title}` : 'Start with a documented purpose and authorization before recording any research item.'));
+    add(caseBody, btn(current ? 'Review active case' : 'Create authorized case', 'intel-btn intel-btn-primary', current ? () => renderModule('cases') : openCaseModal));
+    add(flow, card('1. Case scope', caseBody));
+
+    const discordBody = el('div');
+    add(discordBody, el('p', '', 'Decode a user-supplied Discord snowflake locally. The result provides timestamp fields only—not a username or account owner.'), btn('Decode Discord snowflake', 'intel-btn', () => renderModule('discord')));
+    add(flow, card('2. Discord record', discordBody));
+
+    const pivotBody = el('div'); const candidate = makeInput('Roblox username or numeric ID'); const rationale = makeInput('Source or analyst rationale');
+    const pivotForm = el('form', 'intel-query-form'); add(pivotForm, field('Candidate', candidate), field('Why record this?', rationale), btn('Save unverified candidate', 'intel-btn intel-btn-primary'));
+    pivotForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      const handle = candidate.value.trim(); const reason = rationale.value.trim();
+      if (!/^[A-Za-z0-9_]{2,40}$/.test(handle) || !reason) return toast('Add a valid Roblox candidate and its source or rationale.');
+      if (!activeCase()) { state.pendingEvidence = evidenceFrom(module, 'User-supplied Roblox candidate', 'MANUAL · UNVERIFIED', 'Analyst-provided candidate', [['Candidate', handle], ['Rationale', reason], ['Relationship', 'Not verified']]); openCaseModal(); return; }
+      await addEvidence(evidenceFrom(module, 'User-supplied Roblox candidate', 'MANUAL · UNVERIFIED', 'Analyst-provided candidate', [['Candidate', handle], ['Rationale', reason], ['Relationship', 'Not verified']]));
+      log(module.id, 'Recorded an unverified Roblox candidate'); renderGuidedWorkflow(module);
+    });
+    add(pivotBody, el('p', '', 'A saved candidate is not proof of identity or account ownership.'), pivotForm, btn('Open Roblox module', 'intel-btn', () => renderModule('roblox')));
+    add(flow, card('3. Roblox pivot', pivotBody));
+
+    const providerBody = el('div');
+    add(providerBody, el('p', '', 'Create a provider task only after confirming authorization. CoreShift never submits identifiers or collects exposed credentials automatically.'), btn('Prepare web-database task', 'intel-btn', () => renderModule('web-databases')), btn('Review source notes', 'intel-btn intel-btn-quiet', () => renderModule('source-notes')));
+    add(flow, card('4. Provider plan', providerBody));
+
+    const reportBody = el('div');
+    add(reportBody, el('p', '', current ? `${current.evidence.length} saved evidence items and ${current.notes.length} source notes are ready for review.` : 'Select a case to review evidence, timeline, and reports.'), btn('Open evidence & reports', 'intel-btn', () => renderModule(current ? 'report-builder' : 'cases')));
+    add(flow, card('5. Review & export', reportBody));
+    add(root, flow); stage.replaceChildren(root);
   }
 
   function renderActivity() {
@@ -336,16 +376,28 @@
         item.evidence.slice(0, 12).forEach(evidence => {
           const evidenceRow = el('div', 'intel-evidence-row'); const copy = el('div');
           add(copy, el('b', '', evidence.title), el('small', '', `${evidence.module} · ${evidence.classification}`));
-          add(evidenceRow, copy, btn('Remove', 'intel-btn intel-btn-danger', async () => {
+          const evidenceActions = el('div', 'intel-source-actions');
+          add(evidenceActions, btn('Details', 'intel-btn', () => renderEvidenceDetail(item, evidence)), btn('Copy citation', 'intel-btn intel-btn-quiet', () => copyCitation(evidence)), btn('Remove', 'intel-btn intel-btn-danger', async () => {
             if (!window.confirm(`Remove “${evidence.title}” from this case?`)) return;
             item.evidence = item.evidence.filter(candidate => candidate.id !== evidence.id); await persistCases(); log('cases', 'Removed an evidence item'); renderCases();
-          })); add(list, evidenceRow);
+          })); add(evidenceRow, copy, evidenceActions); add(list, evidenceRow);
         });
         if (item.evidence.length > 12) add(list, el('small', '', `${item.evidence.length - 12} more items are included in the export.`));
         add(node, list);
       }
       add(grid, node);
     }); add(root, grid); stage.replaceChildren(root);
+  }
+
+  function renderEvidenceDetail(caseItem, evidence) {
+    const root = viewHeader(moduleById('cases'), 'EVIDENCE DETAIL');
+    add(root, el('p', 'intel-notice', `Case: ${caseItem.title}. This item was explicitly saved to the case; it is not an identity or ownership conclusion.`));
+    const fields = el('div', 'intel-result-fields');
+    [['Title', evidence.title], ['Module', evidence.module], ['Classification', evidence.classification], ['Source', evidence.source || 'Not specified'], ['Captured', stamp(evidence.capturedAt)], ...(evidence.fields || [])].forEach(([key, value]) => {
+      const row = el('div', 'intel-kv'); add(row, el('small', '', key), el('b', '', value)); add(fields, row);
+    });
+    const actions = el('div', 'intel-source-actions'); add(actions, btn('Back to cases', 'intel-btn intel-btn-primary', renderCases), btn('Copy citation', 'intel-btn', () => copyCitation(evidence)));
+    add(root, card(evidence.title, fields), actions); stage.replaceChildren(root);
   }
 
   async function renderDemo() {
@@ -511,11 +563,20 @@
 
   function renderDiscordTabs(module, snowflake, decoded, tab) {
     const root = viewHeader(module, 'LOCAL SNOWFLAKE VIEW'); const tabs = el('div', 'intel-source-actions');
-    ['Profile', 'Connections 15', 'Reviews', 'Mod Actions', 'Roblox', 'Raw'].forEach(name => add(tabs, btn(name, `intel-btn${name === tab ? ' intel-btn-primary' : ''}`, () => renderDiscordTabs(module, snowflake, decoded, name)))); add(root, tabs);
+    ['Profile', 'Connections', 'Reviews', 'Mod Actions', 'Roblox', 'Raw'].forEach(name => add(tabs, btn(name, `intel-btn${name === tab ? ' intel-btn-primary' : ''}`, () => renderDiscordTabs(module, snowflake, decoded, name)))); add(root, tabs);
     if (tab === 'Profile') add(root, card('Decoded profile fields', `Created ${decoded.created} · worker ${decoded.worker} · process ${decoded.process} · increment ${decoded.increment}. This does not reveal a username or account owner.`));
-    else if (tab === 'Connections 15') {
-      const grid = el('div', 'intel-connection-grid'); ['Amazon Music', 'Crunchyroll', 'eBay', 'Epic', 'GitHub', 'PlayStation', 'Reddit', 'Riot', 'Roblox', 'Spotify', 'Steam', 'Twitch', 'Twitter', 'Xbox', 'YouTube'].forEach(name => add(grid, card(name, 'UNVERIFIED · no connection provider was queried.'))); add(root, grid);
-    } else if (tab === 'Roblox') add(root, card('Roblox pivot', 'No identity link is inferred. Use the Roblox module to create an official, unverified username or numeric-ID plan.'));
+    else if (tab === 'Connections') {
+      const body = el('div'); const service = makeInput('Service name, such as Roblox'); const candidate = makeInput('Candidate handle or ID'); const source = makeInput('Where this candidate came from');
+      const form = el('form', 'intel-query-form'); add(form, field('Service', service), field('Candidate', candidate), field('Source / rationale', source), btn('Save unverified candidate', 'intel-btn intel-btn-primary'));
+      form.addEventListener('submit', async event => {
+        event.preventDefault(); const serviceName = safeText(service.value, 80).trim(); const handle = safeText(candidate.value, 100).trim(); const rationale = safeText(source.value, 300).trim();
+        if (!serviceName || !handle || !rationale) return toast('Add the service, candidate, and source or rationale.');
+        await addEvidence(evidenceFrom(module, `${serviceName} candidate`, 'MANUAL · UNVERIFIED', 'Analyst-provided candidate', [['Discord snowflake', snowflake], ['Service', serviceName], ['Candidate', handle], ['Source / rationale', rationale], ['Relationship', 'Not verified']]));
+        log(module.id, 'Recorded an unverified connection candidate');
+      });
+      add(body, el('p', 'intel-warning', 'UNVERIFIED · Enter only a candidate you are authorized to record. This workspace does not retrieve or claim Discord connections.'), form);
+      add(root, card('Candidate connection record', body));
+    } else if (tab === 'Roblox') add(root, card('Roblox pivot', 'No identity link is inferred. Record a user-supplied candidate under Connections, then use the Roblox module to prepare an official public-profile plan.'));
     else if (tab === 'Raw') add(root, card('Local decoded JSON', JSON.stringify({ snowflake, ...decoded }, null, 2)));
     else add(root, card(tab, 'No provider is configured for this category. CoreShift will not invent review, moderation, or identity data.'));
     stage.replaceChildren(root);
@@ -573,7 +634,9 @@
       if (value.length < 2) return toast('Enter a longer query value.'); const root = viewHeader(module, 'PROVIDER PLAN');
       add(root, el('p', 'intel-warning', `UNVERIFIED · Local classification: ${classifyQuery(value)}. No breach database was queried. Never use exposed credentials or bypass access controls.`));
       const grid = el('div', 'intel-connection-grid'); [['LeakCheck', 'https://leakcheck.io/'], ['Snusbase', 'https://snusbase.com/'], ['CloudSINT', 'https://cloudsint.com/']].forEach(([name, url]) => {
-        const node = card(name, 'Query types: email · username · domain · IP. Target is not sent until you explicitly use the provider.'); add(node, btn('Open provider home', 'intel-btn', () => openApproved(url, module.id))); add(grid, node);
+        const body = el('div'); const task = evidenceFrom(module, `${name} provider task`, 'MANUAL · PROVIDER PLAN', `${name} provider plan`, [['Query classification', classifyQuery(value)], ['Status', 'Planned — provider not queried'], ['Provider', name], ['Provider URL', url]]);
+        add(body, el('p', '', 'Query types: email · username · domain · IP. Target is not sent until you explicitly use the provider.'), btn('Add provider task to case', 'intel-btn intel-btn-primary', () => addEvidence(task)), btn('Open provider home', 'intel-btn', () => openApproved(url, module.id)));
+        add(grid, card(name, body));
       }); add(root, grid); stage.replaceChildren(root); log(module.id, 'Built a web-database provider plan');
     });
   }
@@ -652,7 +715,7 @@
     const module = moduleById(id) || moduleById('dashboard'); if (module.disabled) return;
     cancelActiveRequest();
     state.activeModule = module.id; byId('intelBreadcrumb').textContent = `INTELLIGENCE / ${module.group.toUpperCase()} / ${module.label.toUpperCase()}`; renderRail(byId('intelModuleFilter').value); resetEgress(); setBusy(false);
-    const handlers = { dashboard: renderDashboard, activity: renderActivity, cases: renderCases, databases: renderDatabases, github: renderGithub, ip: renderIp, dns: renderDns, rdap: renderRdap, username: renderUsername, discord: renderDiscord, roblox: renderRoblox, search: renderSearch, provider: renderProvider, file: renderFile, url: renderUrl, graph: renderGraph, timeline: renderTimeline, report: renderReport, notes: renderNotes };
+    const handlers = { dashboard: renderDashboard, workflow: renderGuidedWorkflow, activity: renderActivity, cases: renderCases, databases: renderDatabases, github: renderGithub, ip: renderIp, dns: renderDns, rdap: renderRdap, username: renderUsername, discord: renderDiscord, roblox: renderRoblox, search: renderSearch, provider: renderProvider, file: renderFile, url: renderUrl, graph: renderGraph, timeline: renderTimeline, report: renderReport, notes: renderNotes };
     (handlers[module.mode] || renderDashboard)(module);
   }
 

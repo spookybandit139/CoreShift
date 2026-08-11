@@ -2518,3 +2518,58 @@
   animation: none !important;
   transition: none !important;
 }
+
+/* Keep the research workspace visible at every desktop height. */
+.sidebar {
+  min-height: 0;
+}
+
+.sidebar nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-color: rgba(var(--intel-purple-rgb), .5) transparent;
+  scrollbar-width: thin;
+}
+
+.nav-btn[data-panel="intelligence"] {
+  border: 1px solid rgba(var(--intel-purple-rgb), .42);
+  background: linear-gradient(90deg, rgba(var(--intel-purple-rgb), .2), rgba(var(--intel-purple-rgb), .035));
+  color: #f5edff;
+}
+
+.nav-btn[data-panel="intelligence"] i {
+  color: #bd99ff;
+}
+
+.nav-btn[data-panel="intelligence"]:hover,
+.nav-btn[data-panel="intelligence"].active {
+  border-color: #a875ff;
+  background: linear-gradient(90deg, rgba(var(--intel-purple-rgb), .34), rgba(var(--intel-purple-rgb), .09));
+  box-shadow: inset 2px 0 #b58aff, 0 8px 20px rgba(var(--intel-purple-rgb), .12);
+}
+
+.nav-btn[data-panel="intelligence"] small {
+  float: right;
+  margin-top: 1px;
+  padding: 2px 4px;
+  border: 1px solid rgba(190, 154, 255, .5);
+  border-radius: 3px;
+  color: #d1b9ff;
+  font-size: 7px;
+  letter-spacing: .7px;
+}
+
+.core-mode-rail button[data-top-panel="intelligence"] {
+  color: #cfb9ff;
+}
+
+.core-mode-rail button[data-top-panel="intelligence"].active {
+  color: #fff;
+}
+
+.core-mode-rail button[data-top-panel="intelligence"] small {
+  background: #9d70fa;
+  color: #110b1d;
+}

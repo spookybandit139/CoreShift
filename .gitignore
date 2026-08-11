@@ -10,6 +10,8 @@ CoreShift Clips/
 
 # Generated packages and release artifacts
 dist/
+dist-intelligence/
+dist-release-*/
 release-ui-v*/
 
 # Local agent/editor state
