@@ -89,6 +89,8 @@ contextBridge.exposeInMainWorld('coreShiftAPI', {
   downloadUpdate: () => ipcRenderer.invoke('updates:download'),
   installUpdate: () => ipcRenderer.invoke('updates:install'),
   getUpdateStatus: () => ipcRenderer.invoke('updates:status'),
+  openIntelligenceSource: (url) => ipcRenderer.invoke('intelligence:openExternal', url),
+  lookupRobloxPublicProfile: (query) => ipcRenderer.invoke('intelligence:robloxLookup', query),
   onUpdateStatus: (callback) => ipcRenderer.on('updates:statusChanged', (_event, status) => callback(status)),
   testLatency: (payload) => ipcRenderer.invoke('network:ping', payload),
   getNetworkInfo: () => ipcRenderer.invoke('network:info'),
