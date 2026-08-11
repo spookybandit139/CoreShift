@@ -336,6 +336,23 @@ function registerDiscordBot({ ipcMain, BrowserWindow, app, fs, path, safeStorage
         const sync = await syncCommands(token, getConfig(), client?.isReady() ? [...client.guilds.cache.keys()] : []);
         return { success: true, sync, message: syncMessage(sync) };
       } catch (error) { return { success: false, message: cleanDiscordError(error) }; }
+    },
+    async getMobileStatus() {
+      return { success: true, status: { ...status }, message: status.message || 'Bot Command Center is ready.' };
+    },
+    async startFromMobile() {
+      return startBot();
+    },
+    async stopFromMobile() {
+      return stopBot();
+    },
+    async syncFromMobile() {
+      try {
+        const token = readToken();
+        if (!token) throw new Error('Save a newly reset Discord bot token on this PC first.');
+        const sync = await syncCommands(token, getConfig(), client?.isReady() ? [...client.guilds.cache.keys()] : []);
+        return { success: true, sync, message: syncMessage(sync) };
+      } catch (error) { return { success: false, message: cleanDiscordError(error) }; }
     }
   };
 }

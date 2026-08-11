@@ -641,14 +641,15 @@ LIMIT 5;</textarea>
         </article>
 
         <article class="settings mobile-control-settings">
-          <div class="mobile-control-title"><div><h3>Wi-Fi Control Center</h3><small>Use your phone as a local CoreShift remote.</small></div><span id="mobileControlState" data-state="off">OFF</span></div>
-          <p>Start this only on a trusted home Wi-Fi network. CoreShift picks your active Wi-Fi address, creates a temporary link for one paired phone, and never opens a public internet connection or requires router port forwarding. If Windows asks, allow it on <b>Private networks only</b>.</p>
+          <div class="mobile-control-title"><div><h3>Mobile Bot Command Center</h3><small>Control your Discord bot from one trusted phone.</small></div><span id="mobileControlState" data-state="off">OFF</span></div>
+          <p>Start this only on a trusted home Wi-Fi network. Open the private link on your phone, then enter the 4-digit code shown below. CoreShift never exposes your bot token, opens a public internet connection, or requires router port forwarding. If Windows asks, allow it on <b>Private networks only</b>.</p>
           <div id="mobileControlPairing" class="mobile-control-pairing" hidden>
-            <label>Open this link on your phone<input id="mobileControlUrl" readonly></label>
-            <button id="copyMobileControlUrlBtn" type="button" class="outline">Copy link</button>
+            <label>1. Open this private link on your phone<input id="mobileControlUrl" readonly></label>
+            <label>2. Enter this 4-digit security code<input id="mobileControlAccessCode" readonly></label>
+            <button id="copyMobileControlUrlBtn" type="button" class="outline">Copy private link</button>
           </div>
-          <div class="mobile-control-actions"><button id="startMobileControlBtn" type="button" class="primary">Start Wi-Fi Control</button><button id="newMobileControlPairingBtn" type="button" class="outline" hidden>New pairing link</button><button id="stopMobileControlBtn" type="button" class="outline" hidden>Stop &amp; disconnect</button></div>
-          <small id="mobileControlStatus">Off. Start it only when you want to use your phone as a controller.</small>
+          <div class="mobile-control-actions"><button id="startMobileControlBtn" type="button" class="primary">Start Bot Remote</button><button id="newMobileControlPairingBtn" type="button" class="outline" hidden>New link &amp; code</button><button id="stopMobileControlBtn" type="button" class="outline" hidden>Stop &amp; disconnect</button></div>
+          <small id="mobileControlStatus">Off. Start it only when you want phone access to your Discord bot.</small>
         </article>
 
         <!-- MYSQL -->
