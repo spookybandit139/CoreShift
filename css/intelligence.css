@@ -274,8 +274,7 @@
 }
 
 .intel-module-btn > i,
-.intel-module-btn > svg,
-.intel-module-btn > span:first-child:not(:last-child) {
+.intel-module-btn > svg {
   flex: 0 0 19px;
   display: grid;
   place-items: center;
@@ -284,6 +283,23 @@
   color: #776d84;
   font-size: 13px;
   font-style: normal;
+}
+
+.intel-module-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.intel-module-state {
+  min-width: 35px;
+  text-align: right;
+}
+
+.intel-module-btn.active .intel-module-state {
+  color: var(--intel-purple-soft);
 }
 
 .intel-module-btn > svg {

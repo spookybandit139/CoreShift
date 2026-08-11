@@ -280,6 +280,42 @@ ipPrivacyController = registerIpPrivacy({
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:close', () => app.quit());
 
+ipcMain.handle('intelligence:openExternal', async (_event, rawUrl) => {
+  try {
+    const parsed = new URL(String(rawUrl || ''));
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) throw new Error('Only credential-free HTTPS links can be opened.');
+    await shell.openExternal(parsed.href);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, message: error.message || 'The link could not be opened.' };
+  }
+});
+
+ipcMain.handle('intelligence:robloxLookup', async (_event, rawQuery) => {
+  const query = String(rawQuery || '').trim();
+  const numericId = /^\d{1,20}$/.test(query);
+  const username = /^[A-Za-z0-9_]{3,20}$/.test(query);
+  if (!numericId && !username) return { ok: false, status: 400, message: 'Enter a Roblox username (3–20 characters) or numeric user ID.' };
+
+  const endpoint = numericId
+    ? `https://users.roblox.com/v1/users/${encodeURIComponent(query)}`
+    : `https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(query)}&limit=10`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(endpoint, { signal: controller.signal, headers: { Accept: 'application/json' } });
+    const text = await response.text();
+    if (text.length > 1024 * 1024) throw new Error('Roblox returned a response larger than the 1 MB safety limit.');
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text.slice(0, 500) }; }
+    return { ok: response.ok, status: response.status, data, endpoint, lookupType: numericId ? 'profile' : 'search' };
+  } catch (error) {
+    return { ok: false, status: 0, message: error.name === 'AbortError' ? 'The public Roblox request timed out.' : (error.message || 'The public Roblox request failed.') };
+  } finally {
+    clearTimeout(timeout);
+  }
+});
+
 ipcMain.handle('system:getStats', async () => {
   try {
     const [cpuLoad, mem, gpu, os, cpu, disks, network] = await Promise.all([si.currentLoad(), si.mem(), si.graphics(), si.osInfo(), si.cpu(), si.fsSize(), si.networkStats()]);

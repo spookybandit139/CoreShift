@@ -7,15 +7,16 @@
 
   const api = window.coreShiftAPI;
   const GROUPS = ['Core', 'Intelligence', 'US Search', 'Infrastructure', 'Social', 'Tools'];
+  const GROUP_LABELS = { Core: 'Workspace', Intelligence: 'Research planning', 'US Search': 'Public search plans', Infrastructure: 'Public infrastructure', Social: 'Public profiles', Tools: 'Case tools' };
   const MODULES = [
     ['dashboard', 'Dashboard', 'Core', 'Local workspace overview', 'dashboard'],
     ['guided-workflow', 'Guided Workflow', 'Core', 'Case → Discord → Roblox → provider research path', 'workflow'],
     ['activity', 'Activity', 'Core', 'Session actions without raw queries', 'activity'],
     ['cases', 'Cases', 'Core', 'Authorized research cases and evidence', 'cases'],
     ['web-databases', 'Web Databases', 'Intelligence', 'Plan authorized checks across named providers', 'databases'],
-    ['reverse-face', 'Reverse Face Search', 'Intelligence', 'Local image fingerprint; no identity inference', 'file'],
-    ['image-geolocation', 'Image Geolocation', 'Intelligence', 'Inspect local image metadata without location claims', 'file'],
-    ['gmail-lookup', 'Gmail Lookup', 'Intelligence', 'Local email validation and source plan', 'search'],
+    ['reverse-face', 'Image Fingerprint', 'Intelligence', 'Local image fingerprint; no identity inference', 'file'],
+    ['image-geolocation', 'Image Metadata', 'Intelligence', 'Inspect a local image without location claims', 'file'],
+    ['gmail-lookup', 'Gmail Syntax', 'Intelligence', 'Local email validation and source plan', 'search'],
     ['hudson-rock', 'Hudson Rock', 'Intelligence', 'External provider launch plan', 'provider'],
     ['seon', 'SEON', 'Intelligence', 'External provider launch plan', 'provider'],
     ['phone-search', 'Phone Search', 'US Search', 'Normalize a phone number and plan public-source review', 'search'],
@@ -30,13 +31,13 @@
     ['certificate-lookup', 'Certificate Lookup', 'Infrastructure', 'Certificate transparency source plan', 'provider'],
     ['usernames', 'Usernames', 'Social', 'Candidate profile URLs with no existence claims', 'username'],
     ['github', 'GitHub', 'Social', 'Public account metadata from GitHub API', 'github'],
-    ['roblox', 'Roblox', 'Social', 'Official public profile pivot plan', 'roblox'],
+    ['roblox', 'Roblox', 'Social', 'Public profile search and numeric-ID lookup', 'roblox'],
     ['discord', 'Discord', 'Social', 'Decode a public snowflake locally', 'discord'],
     ['tiktok', 'TikTok', 'Social', 'Official profile link plan with no existence claim', 'provider'],
     ['evidence-hash', 'Evidence Hash', 'Tools', 'SHA-256 and basic metadata computed locally', 'file'],
     ['url-inspector', 'URL Inspector', 'Tools', 'Normalize a URL and inspect hostname signals locally', 'url'],
     ['discord-id-decoder', 'Discord ID Decoder', 'Tools', 'Decode Discord snowflake fields locally', 'discord'],
-    ['roblox-profile-inspector', 'Roblox Profile Inspector', 'Tools', 'Official profile pivot with safe compromise guidance', 'roblox'],
+    ['roblox-profile-inspector', 'Roblox Profile Inspector', 'Tools', 'Public profile search and numeric-ID lookup', 'roblox'],
     ['relationship-graph', 'Relationship Graph', 'Tools', 'Case-to-evidence links without inferred identity', 'graph'],
     ['timeline', 'Timeline', 'Tools', 'Chronological case evidence view', 'timeline'],
     ['report-builder', 'Report Builder', 'Tools', 'Review and export case JSON', 'report'],
@@ -46,7 +47,7 @@
   ].map(([id, label, group, description, mode, disabled = false]) => ({ id, label, group, description, mode, disabled }));
 
   const APPROVED_HOSTS = new Set([
-    'api.github.com', 'github.com', 'ipwho.is', 'dns.google', 'rdap.org', 'www.google.com',
+    'api.github.com', 'github.com', 'ipwho.is', 'dns.google', 'rdap.org', 'www.google.com', 'users.roblox.com',
     'www.usa.gov', 'discord.com', 'www.roblox.com', 'www.tiktok.com', 'www.shodan.io',
     'crt.sh', 'www.hudsonrock.com', 'hudsonrock.com', 'seon.io', 'www.seon.io',
     'support.google.com', 'leakcheck.io', 'snusbase.com', 'cloudsint.com'
@@ -141,7 +142,7 @@
     const header = el('header', 'intel-view-header');
     const copy = el('div');
     add(copy, el('small', 'intel-eyebrow', eyebrow || module.group.toUpperCase()), el('h2', 'intel-title', module.label), el('p', 'intel-subtitle', module.description));
-    const badgeLabel = module.disabled ? 'EXCLUDED' : ['github', 'ip', 'dns', 'rdap'].includes(module.mode) ? 'CONSENT PER RUN' : 'LOCAL FIRST';
+    const badgeLabel = module.disabled ? 'EXCLUDED' : ['github', 'ip', 'dns', 'rdap', 'roblox'].includes(module.mode) ? 'CONSENT PER RUN' : 'LOCAL FIRST';
     const badge = el('span', `intel-status-badge${badgeClass(badgeLabel)}`, badgeLabel);
     add(header, copy, badge); add(root, header); return root;
   }
@@ -181,13 +182,14 @@
     catch { const area = el('textarea'); area.value = text; document.body.append(area); area.select(); document.execCommand('copy'); area.remove(); toast('Citation copied.'); }
   }
 
-  function openApproved(url, moduleId) {
+  async function openApproved(url, moduleId) {
     try {
       const parsed = new URL(url);
       if (parsed.protocol !== 'https:' || !APPROVED_HOSTS.has(parsed.hostname)) throw new Error('Source is not approved.');
       setEgress(`Opening ${parsed.hostname} shares the encoded identifier with that provider.`);
       log(moduleId, 'Opened an approved HTTPS source');
-      window.open(parsed.href, '_blank', 'noopener,noreferrer');
+      const result = api?.openIntelligenceSource ? await api.openIntelligenceSource(parsed.href) : { ok: Boolean(window.open(parsed.href, '_blank', 'noopener,noreferrer')) };
+      if (!result?.ok) throw new Error(result?.message || 'The approved source could not be opened.');
       setTimeout(resetEgress, 5000);
     } catch (error) { toast(error.message); }
   }
@@ -272,14 +274,21 @@
 
   function renderRail(filter = '') {
     const nav = byId('intelModuleNav'); nav.replaceChildren(); const needle = filter.trim().toLowerCase();
+    const stateLabel = item => {
+      if (item.disabled) return 'EXCLUDED';
+      if (['github', 'ip', 'dns', 'rdap', 'roblox'].includes(item.mode)) return 'LIVE';
+      if (['provider', 'databases', 'search', 'username'].includes(item.mode)) return 'PLAN';
+      return 'LOCAL';
+    };
     GROUPS.forEach(group => {
       const matches = MODULES.filter(item => item.group === group && (!needle || `${item.label} ${item.description}`.toLowerCase().includes(needle)));
       if (!matches.length) return;
-      const section = el('section', 'intel-nav-group'); add(section, el('p', 'intel-nav-label', group));
+      const section = el('section', 'intel-nav-group'); add(section, el('p', 'intel-nav-label', GROUP_LABELS[group] || group));
       matches.forEach(item => {
-        const button = btn(item.label, `intel-module-btn${item.id === state.activeModule ? ' active' : ''}`, () => renderModule(item.id));
+        const button = btn('', `intel-module-btn${item.id === state.activeModule ? ' active' : ''}`, () => renderModule(item.id));
+        add(button, el('span', 'intel-module-name', item.label), el('small', 'intel-module-state', stateLabel(item)));
         button.disabled = item.disabled; button.setAttribute('aria-current', item.id === state.activeModule ? 'page' : 'false');
-        if (item.disabled) { button.title = item.description; add(button, el('small', '', ' EXCLUDED')); }
+        button.title = item.description;
         add(section, button);
       }); add(nav, section);
     });
@@ -594,6 +603,98 @@
     });
   }
 
+  // Public Roblox data is retrieved through the narrow main-process bridge so the
+  // renderer never needs broad network access or provider credentials.
+  function renderRoblox(module) {
+    queryView(module, 'Roblox username or numeric user ID', 'Roblox or 1', 'Prepare public lookup', value => {
+      if (!/^\d{1,20}$/.test(value) && !/^[A-Za-z0-9_]{3,20}$/.test(value)) return toast('Enter a Roblox username (3–20 characters) or numeric user ID.');
+      confirmRobloxLookup(module, value);
+    });
+  }
+
+  function confirmRobloxLookup(module, value) {
+    const numeric = /^\d+$/.test(value);
+    const root = viewHeader(module, 'ROBLOX PUBLIC API');
+    const detail = numeric ? 'the numeric Roblox user ID' : 'the Roblox username candidate';
+    const box = card('Confirm one public profile request', `This run sends ${detail} to Roblox's public user API. No Discord connection, private data, account ownership, or credential data is requested.`, 'intel-warning');
+    const confirm = btn('Confirm & run once', 'intel-btn intel-btn-primary', async () => {
+      if (!api?.lookupRobloxPublicProfile) return renderError(module, 'This installed version does not include the Roblox public lookup bridge. Update CoreShift and try again.');
+      cancelActiveRequest();
+      const requestId = ++state.requestSerial;
+      confirm.disabled = true; state.liveRuns += 1; log(module.id, 'Started a Roblox public user request', 'running');
+      setEgress('One request is running against users.roblox.com.'); loading(module, 'Contacting Roblox public user API…');
+      try {
+        const packet = await api.lookupRobloxPublicProfile(value);
+        if (requestId !== state.requestSerial) return;
+        if (!packet?.ok) {
+          const message = safeText(packet?.data?.errors?.[0]?.message || packet?.message || `Roblox returned HTTP ${packet?.status || 0}.`, 300);
+          return renderError(module, message, numeric ? `https://www.roblox.com/users/${encodeURIComponent(value)}/profile` : `https://www.roblox.com/search/users?keyword=${encodeURIComponent(value)}`);
+        }
+        log(module.id, 'Completed a Roblox public user request');
+        if (packet.lookupType === 'profile') return renderRobloxProfile(module, packet.data);
+        renderRobloxCandidates(module, value, packet.data);
+      } catch (error) {
+        if (requestId !== state.requestSerial) return;
+        log(module.id, 'A Roblox public user request failed', 'error'); renderError(module, `Roblox could not be reached: ${safeText(error.message, 240)}. No fallback result was invented.`);
+      } finally {
+        if (requestId === state.requestSerial) { resetEgress(); setBusy(false); }
+      }
+    });
+    add(box, confirm, btn('Cancel', 'intel-btn intel-btn-quiet', () => renderModule(module.id))); add(root, box);
+    stage.replaceChildren(root); setEgress('Awaiting confirmation before any data is sent to users.roblox.com.');
+  }
+
+  function renderRobloxProfile(module, data) {
+    const id = String(data?.id || '');
+    if (!id) return renderError(module, 'Roblox returned no public profile data.');
+    const profileUrl = `https://www.roblox.com/users/${encodeURIComponent(id)}/profile`;
+    renderResult(module, { title: 'Roblox public profile', badge: 'LIVE · ROBLOX', source: 'Roblox public user API', sourceUrl: profileUrl, fields: [
+      ['User ID', id], ['Username', safeText(data.name || 'Not returned')], ['Display name', safeText(data.displayName || 'Not returned')],
+      ['Created', safeText(data.created || 'Not returned')], ['Verified badge', data.hasVerifiedBadge ? 'Yes' : 'No'], ['Banned', data.isBanned ? 'Yes' : 'No'],
+      ['Description', safeText(data.description || 'Not published', 500)]
+    ], note: 'Public profile data only. A profile match does not establish a person’s identity or a Discord relationship.' });
+  }
+
+  function renderRobloxCandidates(module, query, payload) {
+    const items = Array.isArray(payload?.data) ? payload.data.slice(0, 10) : [];
+    if (!items.length) return renderError(module, 'Roblox returned no public username candidates.', `https://www.roblox.com/search/users?keyword=${encodeURIComponent(query)}`);
+    const root = viewHeader(module, 'ROBLOX PUBLIC SEARCH');
+    add(root, el('p', 'intel-warning', 'UNVERIFIED · These are public username candidates only. Choose a numeric ID to request its public profile; CoreShift does not infer account ownership or cross-platform identity.'));
+    const grid = el('div', 'intel-connection-grid');
+    items.forEach(item => {
+      const id = String(item?.id || ''); if (!id) return;
+      const body = el('div');
+      add(body, el('p', '', `@${safeText(item.name || 'Unknown')} · ${safeText(item.displayName || 'No display name')}`), el('small', '', `User ID ${id} · Verified badge: ${item.hasVerifiedBadge ? 'Yes' : 'No'}`));
+      add(body, btn('Get public profile data', 'intel-btn intel-btn-primary', () => confirmRobloxLookup(module, id)), btn('Open official profile', 'intel-btn', () => openApproved(`https://www.roblox.com/users/${encodeURIComponent(id)}/profile`, module.id)));
+      add(grid, card(`Candidate @${safeText(item.name || id)}`, body));
+    });
+    add(root, grid); stage.replaceChildren(root); log(module.id, 'Displayed Roblox public username candidates');
+  }
+
+  // Keep Discord's local decoder focused. The removed Review and Mod Action
+  // placeholders previously looked like working tabs despite having no data source.
+  function renderDiscordTabs(module, snowflake, decoded, tab) {
+    const root = viewHeader(module, 'LOCAL SNOWFLAKE VIEW'); const tabs = el('div', 'intel-source-actions');
+    ['Profile', 'Candidate connection', 'Roblox pivot', 'Raw JSON'].forEach(name => add(tabs, btn(name, `intel-btn${name === tab ? ' intel-btn-primary' : ''}`, () => renderDiscordTabs(module, snowflake, decoded, name)))); add(root, tabs);
+    if (tab === 'Profile') add(root, card('Decoded profile fields', `Created ${decoded.created} · worker ${decoded.worker} · process ${decoded.process} · increment ${decoded.increment}. This does not reveal a username or account owner.`));
+    else if (tab === 'Candidate connection') {
+      const body = el('div'); const service = makeInput('Service name, such as Roblox'); const candidate = makeInput('Candidate handle or ID'); const source = makeInput('Where this candidate came from');
+      const form = el('form', 'intel-query-form'); add(form, field('Service', service), field('Candidate', candidate), field('Source / rationale', source), btn('Save unverified candidate', 'intel-btn intel-btn-primary'));
+      form.addEventListener('submit', async event => {
+        event.preventDefault(); const serviceName = safeText(service.value, 80).trim(); const handle = safeText(candidate.value, 100).trim(); const rationale = safeText(source.value, 300).trim();
+        if (!serviceName || !handle || !rationale) return toast('Add the service, candidate, and source or rationale.');
+        await addEvidence(evidenceFrom(module, `${serviceName} candidate`, 'MANUAL · UNVERIFIED', 'Analyst-provided candidate', [['Discord snowflake', snowflake], ['Service', serviceName], ['Candidate', handle], ['Source / rationale', rationale], ['Relationship', 'Not verified']]));
+        log(module.id, 'Recorded an unverified connection candidate');
+      });
+      add(body, el('p', 'intel-warning', 'UNVERIFIED · Enter only a candidate you are authorized to record. CoreShift does not retrieve Discord connections.'), form);
+      add(root, card('Candidate connection record', body));
+    } else if (tab === 'Roblox pivot') {
+      const pivot = card('Continue with a public Roblox lookup', 'A Discord snowflake cannot reveal Roblox data. If you have an authorized, analyst-supplied Roblox username or numeric ID, use the public Roblox tool.');
+      add(pivot, btn('Open Roblox public lookup', 'intel-btn intel-btn-primary', () => renderModule('roblox'))); add(root, pivot);
+    } else add(root, card('Local decoded JSON', JSON.stringify({ snowflake, ...decoded }, null, 2)));
+    stage.replaceChildren(root);
+  }
+
   function searchConfig(id, value) {
     const encoded = encodeURIComponent(value); const google = `https://www.google.com/search?q=${encodeURIComponent(`\"${value}\"`)}`;
     if (id === 'gmail-lookup') return { ok: /^[^\s@]+@gmail\.com$/i.test(value), label: 'Gmail syntax', detail: 'Syntax only; account existence is not checked.', links: [['Google account help', 'https://support.google.com/mail/answer/56256']] };
@@ -714,7 +815,7 @@
   function renderModule(id) {
     const module = moduleById(id) || moduleById('dashboard'); if (module.disabled) return;
     cancelActiveRequest();
-    state.activeModule = module.id; byId('intelBreadcrumb').textContent = `INTELLIGENCE / ${module.group.toUpperCase()} / ${module.label.toUpperCase()}`; renderRail(byId('intelModuleFilter').value); resetEgress(); setBusy(false);
+    state.activeModule = module.id; byId('intelBreadcrumb').textContent = `INTELLIGENCE / ${(GROUP_LABELS[module.group] || module.group).toUpperCase()} / ${module.label.toUpperCase()}`; renderRail(byId('intelModuleFilter').value); resetEgress(); setBusy(false);
     const handlers = { dashboard: renderDashboard, workflow: renderGuidedWorkflow, activity: renderActivity, cases: renderCases, databases: renderDatabases, github: renderGithub, ip: renderIp, dns: renderDns, rdap: renderRdap, username: renderUsername, discord: renderDiscord, roblox: renderRoblox, search: renderSearch, provider: renderProvider, file: renderFile, url: renderUrl, graph: renderGraph, timeline: renderTimeline, report: renderReport, notes: renderNotes };
     (handlers[module.mode] || renderDashboard)(module);
   }
