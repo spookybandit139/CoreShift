@@ -66,6 +66,22 @@ async function getSystemStats() {
   } catch (err) { console.error('Stats error:', err); return { error: true }; }
 }
 
+async function getPreferredMobileAddress() {
+  try {
+    const adapters = await si.networkInterfaces();
+    const isPrivateIpv4 = value => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(String(value || ''));
+    const score = adapter => {
+      const name = `${adapter.iface || ''} ${adapter.ifaceName || ''}`;
+      const virtual = /wsl|docker|hyper-v|vmware|virtual|loopback|tailscale|zerotier/i.test(name);
+      return (adapter.default ? 100 : 0) + (adapter.operstate === 'up' ? 10 : 0) + (virtual ? -50 : 5);
+    };
+    return adapters.filter(adapter => isPrivateIpv4(adapter.ip4) && !adapter.internal).sort((left, right) => score(right) - score(left))[0]?.ip4 || '';
+  } catch (error) {
+    console.error('Mobile Wi-Fi address lookup failed:', error);
+    return '';
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280, height: 720, minWidth: 1024, minHeight: 600, backgroundColor: '#000000', frame: false,
@@ -272,7 +288,12 @@ mobileControlController = registerMobileControl({
   restoreBoost: () => boosterController?.restore?.() || { success: false, message: 'The booster is not ready.' },
   scanGames: () => gameLibraryController?.scan?.() || { success: false, games: [] },
   launchGame: id => gameLibraryController?.launch?.({ id }) || { success: false, message: 'The game library is not ready.' },
-  focusDesktop: () => { if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus(); } }
+  focusDesktop: () => { if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus(); } },
+  getPreferredAddress: getPreferredMobileAddress,
+  getBot: () => discordBotController?.getStatus?.() || { success: false, message: 'Discord bot controls are still loading.' },
+  startBot: () => discordBotController?.start?.() || { success: false, message: 'Discord bot controls are not ready.' },
+  stopBot: () => discordBotController?.stopFromController?.() || { success: false, message: 'Discord bot controls are not ready.' },
+  syncBot: () => discordBotController?.syncFromController?.() || { success: false, message: 'Discord bot controls are not ready.' }
 });
 discordBotController = registerDiscordBot({
   ipcMain,

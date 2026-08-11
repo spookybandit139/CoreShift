@@ -313,7 +313,30 @@ function registerDiscordBot({ ipcMain, BrowserWindow, app, fs, path, safeStorage
 
   return {
     async autoStart() { if (getConfig().enabled && readToken()) await startBot(); },
-    async stop() { stopReminderWorker(); if (client) await Promise.resolve(client.destroy()).catch(() => {}); client = null; }
+    async stop() { stopReminderWorker(); if (client) await Promise.resolve(client.destroy()).catch(() => {}); client = null; },
+    async getStatus() {
+      try {
+        requireOwner();
+        return { success: true, status: { ...status }, message: status.message || 'Bot controls are ready.' };
+      } catch (error) { return { success: false, message: cleanError(error) }; }
+    },
+    async start() {
+      try { requireOwner(); return await startBot(); }
+      catch (error) { return { success: false, message: cleanError(error), status }; }
+    },
+    async stopFromController() {
+      try { requireOwner(); return await stopBot(); }
+      catch (error) { return { success: false, message: cleanError(error), status }; }
+    },
+    async syncFromController() {
+      try {
+        requireOwner();
+        const token = readToken();
+        if (!token) throw new Error('Save a newly reset Discord bot token first.');
+        const sync = await syncCommands(token, getConfig(), client?.isReady() ? [...client.guilds.cache.keys()] : []);
+        return { success: true, sync, message: syncMessage(sync) };
+      } catch (error) { return { success: false, message: cleanDiscordError(error) }; }
+    }
   };
 }
 
