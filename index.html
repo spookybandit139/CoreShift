@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="css/discord-bot.css">
   <link rel="stylesheet" href="css/ip-privacy.css">
   <link rel="stylesheet" href="css/updater.css">
+  <link rel="stylesheet" href="css/mobile-control.css">
   <link rel="stylesheet" href="css/scroll-fix.css">
 </head>
 <body>
@@ -637,6 +638,17 @@ LIMIT 5;</textarea>
             <button id="saveUpdateConfigBtn" type="button" class="outline">Save source for all users</button>
             <small>Paste a GitHub repository or release URL. CoreShift converts it to the secure update feed automatically. Releases must contain latest.yml, the installer, and its blockmap.</small>
           </div>
+        </article>
+
+        <article class="settings mobile-control-settings">
+          <div class="mobile-control-title"><div><h3>Wi-Fi Control Center</h3><small>Use your phone as a local CoreShift remote.</small></div><span id="mobileControlState" data-state="off">OFF</span></div>
+          <p>Start this only on a trusted home Wi-Fi network. CoreShift creates a temporary local link for one paired phone; it does not open a public internet connection or require router port forwarding.</p>
+          <div id="mobileControlPairing" class="mobile-control-pairing" hidden>
+            <label>Open this link on your phone<input id="mobileControlUrl" readonly></label>
+            <button id="copyMobileControlUrlBtn" type="button" class="outline">Copy link</button>
+          </div>
+          <div class="mobile-control-actions"><button id="startMobileControlBtn" type="button" class="primary">Start Wi-Fi Control</button><button id="stopMobileControlBtn" type="button" class="outline" hidden>Stop &amp; disconnect</button></div>
+          <small id="mobileControlStatus">Off. Start it only when you want to use your phone as a controller.</small>
         </article>
 
         <!-- MYSQL -->
