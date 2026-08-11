@@ -18,12 +18,14 @@ function setBootStatus(message) { const node = $('#bootStatus'); if (node) node.
 function setOnlineCopy(id, value) { const node = $(id); if (node) node.textContent = value; }
 function renderMobileControlStatus(status = {}) {
   const running = Boolean(status.running);
+  const waitingForPair = running && !status.paired && Boolean(status.url);
   const badge = $('#mobileControlState');
   badge.dataset.state = running ? 'on' : 'off';
-  badge.textContent = running ? 'ON' : 'OFF';
-  $('#mobileControlPairing').hidden = !running;
+  badge.textContent = status.paired ? 'PAIRED' : (running ? 'ON' : 'OFF');
+  $('#mobileControlPairing').hidden = !waitingForPair;
   $('#mobileControlUrl').value = status.url || '';
   $('#startMobileControlBtn').hidden = running;
+  $('#newMobileControlPairingBtn').hidden = !running;
   $('#stopMobileControlBtn').hidden = !running;
   $('#mobileControlStatus').textContent = status.message || (running ? 'Wi-Fi Control Center is running.' : 'Wi-Fi Control Center is off.');
 }
@@ -167,6 +169,11 @@ $('#stopMobileControlBtn').addEventListener('click', async () => {
   const result = await window.coreShiftAPI.stopMobileControl();
   renderMobileControlStatus(result);
   toast('Wi-Fi Control Center stopped and paired phones disconnected.');
+});
+$('#newMobileControlPairingBtn').addEventListener('click', async () => {
+  const result = await window.coreShiftAPI.resetMobileControlPairing();
+  renderMobileControlStatus(result);
+  toast(result.success ? 'Created a fresh pairing link and disconnected the previous phone.' : (result.message || 'Could not create a new pairing link.'));
 });
 $('#copyMobileControlUrlBtn').addEventListener('click', async () => {
   const value = $('#mobileControlUrl').value;

@@ -35,27 +35,40 @@ async function smokeTestServer() {
     getStatus: async () => ({ cpu: { load: 12 }, mem: { used: 2 * 1073741824, total: 8 * 1073741824 }, gpu: { model: 'Test GPU' } }),
     getBooster: async () => ({ success: true, session: { active: false } }),
     applyBoost: async () => ({ success: true, message: 'Boost applied.' }),
-    restoreBoost: async () => ({ success: true, message: 'Settings restored.' }),
-    scanGames: async () => ({ success: true, games: [{ id: 'steam:1', name: 'Test Game', platform: 'Steam' }] }),
-    launchGame: async () => ({ success: true, message: 'Game launched.' }),
-    focusDesktop: () => { focused += 1; }
+  restoreBoost: async () => ({ success: true, message: 'Settings restored.' }),
+  scanGames: async () => ({ success: true, games: [{ id: 'steam:1', name: 'Test Game', platform: 'Steam' }] }),
+  launchGame: async () => ({ success: true, message: 'Game launched.' }),
+  focusDesktop: () => { focused += 1; },
+  getPreferredAddress: async () => '192.168.1.33',
+  getBot: async () => ({ success: true, status: { state: 'stopped', connected: false } }),
+  startBot: async () => ({ success: true, message: 'Bot started.' }),
+  stopBot: async () => ({ success: true, message: 'Bot stopped.' }),
+  syncBot: async () => ({ success: true, message: 'Bot commands synced.' })
   });
   try {
     const started = await handlers.get('mobile:start')();
     assert.strictEqual(started.running, true);
+    assert.match(started.url, /^http:\/\/192\.168\.1\.33:\d+\/pair\?code=[A-Za-z0-9_-]{20,}$/);
     const pairUrl = new URL(started.url); pairUrl.hostname = '127.0.0.1';
     const paired = await request(pairUrl, { method: 'GET' });
     assert.strictEqual(paired.status, 302);
     const cookie = paired.headers['set-cookie'][0].split(';')[0];
     const home = await request(`http://127.0.0.1:${pairUrl.port}/`, { headers: { Cookie: cookie } });
     assert.strictEqual(home.status, 200);
-    const csrf = home.text.match(/const csrf="([a-f0-9]+)"/i)?.[1];
+    const csrf = home.text.match(/const csrf="([A-Za-z0-9_-]+)"/)?.[1];
     assert.ok(csrf, 'Paired controller page should include an action token.');
     const status = await request(`http://127.0.0.1:${pairUrl.port}/api/status`, { headers: { Cookie: cookie } });
     assert.strictEqual(JSON.parse(status.text).games[0].name, 'Test Game');
     const action = await request(`http://127.0.0.1:${pairUrl.port}/api/action`, { method: 'POST', headers: { Cookie: cookie, Origin: `http://127.0.0.1:${pairUrl.port}`, 'Content-Type': 'application/json', 'X-CS-Mobile': csrf } }, JSON.stringify({ action: 'focus' }));
     assert.strictEqual(JSON.parse(action.text).success, true);
     assert.strictEqual(focused, 1);
+    const botAction = await request(`http://127.0.0.1:${pairUrl.port}/api/action`, { method: 'POST', headers: { Cookie: cookie, Origin: `http://127.0.0.1:${pairUrl.port}`, 'Content-Type': 'application/json', 'X-CS-Mobile': csrf } }, JSON.stringify({ action: 'bot-start' }));
+    assert.strictEqual(JSON.parse(botAction.text).message, 'Bot started.');
+    const refreshed = await handlers.get('mobile:pairing:reset')();
+    assert.strictEqual(refreshed.paired, false);
+    assert.match(refreshed.url, /pair\?code=[A-Za-z0-9_-]{20,}$/);
+    const expiredSession = await request(`http://127.0.0.1:${pairUrl.port}/api/status`, { headers: { Cookie: cookie } });
+    assert.strictEqual(expiredSession.status, 401);
   } finally { await controller.stop(); }
 }
 

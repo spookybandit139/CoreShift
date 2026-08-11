@@ -92,6 +92,7 @@ contextBridge.exposeInMainWorld('coreShiftAPI', {
   getMobileControlStatus: () => ipcRenderer.invoke('mobile:status'),
   startMobileControl: () => ipcRenderer.invoke('mobile:start'),
   stopMobileControl: () => ipcRenderer.invoke('mobile:stop'),
+  resetMobileControlPairing: () => ipcRenderer.invoke('mobile:pairing:reset'),
   onUpdateStatus: (callback) => ipcRenderer.on('updates:statusChanged', (_event, status) => callback(status)),
   testLatency: (payload) => ipcRenderer.invoke('network:ping', payload),
   getNetworkInfo: () => ipcRenderer.invoke('network:info'),
