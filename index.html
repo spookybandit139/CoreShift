@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>CoreShift — Intelligence &amp; Game Control</title>
+<title>CoreShift — Game Control</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="modules/latency-lab.css">
   <link rel="stylesheet" href="css/pia.css">
@@ -16,14 +16,13 @@
   <link rel="stylesheet" href="css/discord-bot.css">
   <link rel="stylesheet" href="css/ip-privacy.css">
   <link rel="stylesheet" href="css/updater.css">
-  <link rel="stylesheet" href="css/intelligence.css">
   <link rel="stylesheet" href="css/scroll-fix.css">
 </head>
 <body>
 <div class="app-shell">
   <header class="top-bar">
-    <div class="brand"><img src="icon.ico" alt="CoreShift logo"><b id="brandName">CORE<span>SHIFT</span></b><small>INTELLIGENCE + GAME CONTROL</small></div>
-    <div class="system-ready"><em></em> System ready</div>
+<div class="brand"><img src="icon.ico" alt="CoreShift logo"><b id="brandName">CORE<span>SHIFT</span></b><small>GAME CONTROL CENTER</small></div>
+<div id="onlineStatus" class="system-ready"><em></em> Checking connection…</div>
     <div class="top-actions"><button id="minimizeBtn">—</button><button id="closeBtn">×</button></div>
   </header>
 
@@ -31,9 +30,8 @@
     <div class="profile"><i id="profileInitial">G</i><div><b id="profileName">Guest</b><small id="profileRole">Sign in to chat</small></div><button id="loginBtn">Log in</button></div>
     <nav>
       <p>RESEARCH WORKSPACE</p>
-      <button class="nav-btn active" data-panel="intelligence"><i>⌖</i>Intelligence <small>NEW</small></button>
       <p class="spacer">GAME CONTROL</p>
-      <button class="nav-btn" data-panel="launcher"><i>▦</i>Game Launcher</button>
+<button class="nav-btn active" data-panel="launcher"><i>&#9638;</i>Game Launcher</button>
       <button class="nav-btn" data-panel="overview"><i>⌘</i>Overview</button>
       <button class="nav-btn" data-panel="boost"><i>↗</i>FPS Boost</button>
       <button class="nav-btn" data-panel="clips"><i>◉</i>Clips</button>
@@ -49,14 +47,14 @@
       <button id="ipPrivacyNav" class="nav-btn" data-panel="ipprivacy" hidden><i>◎</i>Daily IP Privacy <small>OWNER</small></button>
       <button class="nav-btn" data-panel="settings"><i>⚙</i>Settings</button>
     </nav>
-    <div class="sidebar-footer"><em></em> CoreShift Intelligence <b>v1.11.0</b></div>
+<div class="sidebar-footer"><em></em> CoreShift Game Control <b>v1.12.0</b></div>
   </aside>
 
   <main class="main-content">
 
     <div class="core-mode-rail" role="navigation" aria-label="CoreShift modes">
-      <button class="active" type="button" data-top-panel="intelligence">Intelligence <small>NEW</small></button>
-      <button type="button" data-top-panel="launcher" data-launcher-view="library">Launcher</button>
+      <button type="button" data-top-panel="overview">Home</button>
+      <button class="active" type="button" data-top-panel="launcher" data-launcher-view="library">Launcher</button>
       <button type="button" data-top-panel="boost">Booster</button>
       <button type="button" data-top-panel="launcher" data-launcher-view="deals">Deals</button>
       <button type="button" data-top-panel="launcher" data-launcher-view="rewards">Rewards</button>
@@ -65,7 +63,7 @@
     </div>
 
     <!-- GAME LAUNCHER PANEL -->
-    <section id="panel-launcher" class="panel launcher-panel">
+<section id="panel-launcher" class="panel launcher-panel visible">
       <div class="launcher-subnav" role="tablist" aria-label="Launcher sections">
         <button class="active" type="button" data-launcher-page-button="library">My Library</button>
         <button type="button" data-launcher-page-button="platforms">Platforms</button>
@@ -196,7 +194,16 @@
         </article>
       </div>
 
-      <div class="overview-pulse"><span class="pulse-orb"></span><div><b>THE NIGHT IS YOURS</b><small>Power up, save a moment, or see what the community is talking about.</small></div><button id="surpriseBtn">✦ Pick for me</button></div>
+      <section class="online-hub" aria-label="Online services">
+        <header><div><p>ONLINE CONTROL</p><h2>Your connection at a glance</h2><small>CoreShift keeps local tools local and shows clearly when a feature uses your network.</small></div><button class="outline" id="refreshOnlineStatusBtn" type="button">Refresh connection</button></header>
+        <div class="online-hub-grid">
+          <article><span class="online-hub-icon">NET</span><div><small>NETWORK</small><b id="onlineNetworkDetail">Checking your active adapter...</b><p id="onlineNetworkCopy">Waiting for a local connection check.</p></div><button type="button" data-go="latency">Open Latency Lab</button></article>
+          <article><span class="online-hub-icon">CHAT</span><div><small>COMMUNITY</small><b id="onlineCommunityDetail">Local community storage</b><p id="onlineCommunityCopy">Connect MySQL to host chat for your own community.</p></div><button type="button" data-go="chat">Open Chat</button></article>
+          <article><span class="online-hub-icon">SYNC</span><div><small>UPDATES</small><b id="onlineUpdateDetail">Checking update service...</b><p id="onlineUpdateCopy">Version checks use the configured secure release feed.</p></div><button type="button" data-go="settings">Open Updates</button></article>
+        </div>
+      </section>
+
+      <div class="overview-pulse"><span class="pulse-orb"></span><div><b>THE NIGHT IS YOURS</b><small>Power up, save a moment, or check the state of your online tools.</small></div><button id="surpriseBtn">Pick for me</button></div>
       <div class="section-title"><b>CHOOSE YOUR NEXT MOVE</b><i></i><small>NO SETUP REQUIRED</small></div>
       <div class="quick-grid overview-actions">
         <button data-go="boost"><i>↗</i><b>Boost & play</b><small>Get your PC in game mode before you queue up</small><span>START BOOST →</span></button>
@@ -532,60 +539,6 @@ LIMIT 5;</textarea>
       </div>
     </section>
 
-    <!-- LOCAL-FIRST INTELLIGENCE WORKSPACE -->
-    <section id="panel-intelligence" class="panel visible intelligence-panel" aria-label="CoreShift Intelligence workspace">
-      <div class="intel-shell">
-        <aside class="intel-module-rail" aria-label="Intelligence modules">
-          <div class="intel-brand" aria-label="CoreShift Intelligence">
-            <span class="intel-brand-mark" aria-hidden="true">CS</span>
-            <div class="intel-brand-copy"><b>INTELLIGENCE</b><small>RESEARCH WORKSPACE</small></div>
-          </div>
-          <div class="intel-module-search">
-            <label class="intel-filter-label" for="intelModuleFilter">Find a module</label>
-            <input id="intelModuleFilter" type="search" maxlength="80" autocomplete="off" spellcheck="false" placeholder="Search modules…" aria-controls="intelModuleNav">
-          </div>
-          <nav id="intelModuleNav" aria-label="Intelligence module list"></nav>
-          <footer class="intel-rail-footer"><span aria-hidden="true"></span><div><b>LOCAL-FIRST</b><small>No background lookups</small></div></footer>
-        </aside>
-
-        <div class="intel-workspace">
-          <header class="intel-workspace-header intel-topbar">
-            <div class="intel-heading-block intel-breadcrumb">
-              <small id="intelBreadcrumb">INTELLIGENCE / DASHBOARD</small>
-              <h1>CoreShift Intelligence</h1>
-            </div>
-            <div class="intel-session-tools intel-case-tools">
-              <label for="intelActiveCaseSelect">Active case
-                <select id="intelActiveCaseSelect" aria-label="Active intelligence case"><option value="">No active case</option></select>
-              </label>
-              <span id="intelSessionMode" class="intel-session-badge" role="status" aria-label="Session mode">LOCAL FIRST</span>
-              <button id="intelLoadDemoBtn" type="button" class="outline intel-top-action">Load offline demo</button>
-              <button id="intelNewCaseBtn" type="button" class="primary intel-top-action">New case</button>
-            </div>
-          </header>
-          <div id="intelEgressNotice" class="intel-egress-notice" role="status" aria-live="polite">
-            No network request is running. Live providers require confirmation for every lookup.
-          </div>
-          <div id="intelStage" class="intel-stage" tabindex="-1" aria-live="polite" aria-busy="false"></div>
-        </div>
-      </div>
-
-      <input id="intelFileInput" type="file" hidden aria-hidden="true">
-
-      <div id="intelCaseModal" class="intel-modal" role="dialog" aria-modal="true" aria-labelledby="intelCaseModalTitle" hidden>
-        <article class="intel-modal-card">
-          <header><div><small>CASE WORKSPACE</small><h2 id="intelCaseModalTitle">Create a research case</h2></div><button id="intelCaseCancel" type="button" aria-label="Close case dialog">×</button></header>
-          <form id="intelCaseForm">
-            <label for="intelCaseTitle">Case title<input id="intelCaseTitle" maxlength="100" autocomplete="off" required placeholder="Example: Brand impersonation review"></label>
-            <label for="intelCasePurpose">Purpose<textarea id="intelCasePurpose" maxlength="500" required placeholder="What legitimate question are you investigating?"></textarea></label>
-            <label for="intelCaseAuthorization">Authorization<textarea id="intelCaseAuthorization" maxlength="500" required placeholder="Describe your authority, ownership, or consent."></textarea></label>
-            <p>Cases are saved locally in CoreShift settings. Searches are not saved unless you explicitly add a result as evidence.</p>
-            <footer class="intel-modal-actions"><button id="intelCaseCancelFooter" type="button" class="outline">Cancel</button><button id="intelCaseSave" type="submit" class="primary">Create case</button></footer>
-          </form>
-        </article>
-      </div>
-    </section>
-
     <section id="panel-ipprivacy" class="panel ip-privacy-panel">
       <div class="heading">
         <div><p>NETWORK PRIVACY</p><h1>Daily IP Privacy</h1><small>Reconnect a saved Windows VPN profile every day and verify the public IP before and after.</small></div>
@@ -789,7 +742,6 @@ LIMIT 5;</textarea>
 <script src="renderer/modules/pia.js"></script>
 <script src="renderer/modules/clip-studio.js"></script>
 <script src="renderer/modules/booster.js"></script>
-<script src="renderer/modules/intelligence.js"></script>
 <script src="renderer.js"></script>
 </body>
 </html>
