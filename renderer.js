@@ -15,6 +15,43 @@ function toast(message) {
   clearTimeout(window.toastTimer); window.toastTimer = setTimeout(() => node.classList.remove('show'), 3000);
 }
 function setBootStatus(message) { const node = $('#bootStatus'); if (node) node.textContent = message; }
+function setOnlineCopy(id, value) { const node = $(id); if (node) node.textContent = value; }
+async function refreshOnlineStatus() {
+  const online = navigator.onLine;
+  const badge = $('#onlineStatus');
+  if (badge) {
+    badge.classList.toggle('offline', !online);
+    badge.innerHTML = online ? '<em></em> Connection available' : '<em></em> Offline mode';
+  }
+  if (!online) {
+    setOnlineCopy('#onlineNetworkDetail', 'Offline mode');
+    setOnlineCopy('#onlineNetworkCopy', 'CoreShift local tools are still available. Connect to a network for updates, platform links, Discord, and community features.');
+  } else {
+    try {
+      const result = await window.coreShiftAPI.getNetworkInfo();
+      const adapter = result?.adapters?.[0];
+      if (!result?.success || !adapter) throw new Error(result?.message || 'No active adapter was returned.');
+      const speed = adapter.speed ? ` at ${adapter.speed} Mbps` : '';
+      setOnlineCopy('#onlineNetworkDetail', `${adapter.name || adapter.iface}${speed}`);
+      setOnlineCopy('#onlineNetworkCopy', `Local adapter ${adapter.ip4 || 'address unavailable'}. Use Latency Lab for an actual game-server test.`);
+    } catch (error) {
+      setOnlineCopy('#onlineNetworkDetail', 'Connection details unavailable');
+      setOnlineCopy('#onlineNetworkCopy', 'CoreShift could not read a usable network adapter. Local tools remain available.');
+    }
+  }
+  const sharedChat = Boolean(settings.mysql?.database);
+  setOnlineCopy('#onlineCommunityDetail', sharedChat ? 'MySQL community storage configured' : 'Local community storage');
+  setOnlineCopy('#onlineCommunityCopy', sharedChat ? 'This desktop can read and post to the configured MySQL community database.' : 'Connect MySQL in Settings to host chat for your own community.');
+  try {
+    const result = await window.coreShiftAPI.getUpdateStatus();
+    const update = result?.status || {};
+    setOnlineCopy('#onlineUpdateDetail', update.currentVersion ? `CoreShift ${update.currentVersion}` : 'Update service ready');
+    setOnlineCopy('#onlineUpdateCopy', update.message || 'Version checks use the configured secure release feed.');
+  } catch {
+    setOnlineCopy('#onlineUpdateDetail', 'Update status unavailable');
+    setOnlineCopy('#onlineUpdateCopy', 'Open Settings to configure or check your secure release source.');
+  }
+}
 function finishBoot() {
   const screen = $('#bootScreen');
   if (!screen) return;
@@ -105,6 +142,9 @@ async function refreshStats() {
 }
 $('#refreshStatsBtn').addEventListener('click', () => { refreshStats(); toast('Telemetry refreshed'); });
 $('#monitorRefreshBtn').addEventListener('click', () => { refreshStats(); toast('System monitor refreshed'); });
+$('#refreshOnlineStatusBtn').addEventListener('click', async () => { await refreshOnlineStatus(); toast('Connection status refreshed.'); });
+window.addEventListener('online', refreshOnlineStatus);
+window.addEventListener('offline', refreshOnlineStatus);
 
 function renderQueryResult(result) {
   if (!result.success) return toast(result.message);
@@ -137,7 +177,7 @@ async function connectMySql(config) {
       renderAdminAudit();
       if (restored) toast('Welcome back, ' + account.username + '.');
     }
-    setConnected(result.message); refreshTables(); loadChat();
+    setConnected(result.message); refreshTables(); loadChat(); refreshOnlineStatus();
     await loadUpdateCenter();
     if (account?.role === 'admin') window.PIAChannel?.onShow?.().catch(error => toast(error.message));
     await recordConsentIfNeeded();
@@ -640,6 +680,7 @@ async function initialize() {
   const discordPresence = settings.discordPresence || {}; $('#discordPresenceToggle').checked = Boolean(discordPresence.enabled); $('#discordClientId').value = discordPresence.clientId || ''; $('#discordDetails').value = discordPresence.details || 'Using the CoreShift Desktop Suite'; $('#discordState').value = discordPresence.state || 'Game Control Center';
   applyAppearance(settings.appearance || DEFAULT_APPEARANCE);
   renderUpdateStatus((await window.coreShiftAPI.getUpdateStatus()).status);
+  await refreshOnlineStatus();
   setupAccountModal(); setupTermsModal(); setupChannels(); account = (await window.coreShiftAPI.getAccountSession()).account; renderAccount(); renderAdminAudit(); if (!account && settings.termsVersion === TERMS_VERSION) $('#authModal').hidden = false;
   applyAdmin(admin); refreshStats(); fpsLoop(); if (settings.overlayEnabled) window.coreShiftAPI.toggleOverlay(true);
   if (window.LatencyLab) await window.LatencyLab.init();
