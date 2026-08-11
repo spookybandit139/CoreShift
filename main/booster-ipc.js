@@ -359,6 +359,9 @@ function registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, syste
 
   configureAutoTimer();
   return {
+    getState: publicState,
+    apply: () => applyBoost({ config, save: false }),
+    restore: () => restoreBoost(),
     restoreOnExit,
     dispose() { if (autoTimer) clearInterval(autoTimer); autoTimer = null; }
   };

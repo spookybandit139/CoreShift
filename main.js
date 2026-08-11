@@ -17,6 +17,7 @@ const { registerDiscordBot } = require('./main/discord-bot');
 const { registerIpPrivacy } = require('./main/ip-privacy');
 const { registerBoosterIpc } = require('./main/booster-ipc');
 const { registerGameLibraryIpc } = require('./main/game-library-ipc');
+const { registerMobileControl } = require('./main/mobile-control');
 
 let mainWindow;
 let overlayWindow;
@@ -26,6 +27,8 @@ let activeAccount;
 let discordBotController;
 let ipPrivacyController;
 let boosterController;
+let gameLibraryController;
+let mobileControlController;
 const OWNER_USERNAME = 'spookybandit139';
 const DISCORD_APPLICATION_ID = '1414846841371099156';
 const REMEMBERED_SESSION_DAYS = 30;
@@ -54,6 +57,13 @@ function getSettings() {
 function saveSettings(settings) {
   fs.writeFileSync(settingsPath(), JSON.stringify(settings, null, 2), 'utf8');
   return settings;
+}
+
+async function getSystemStats() {
+  try {
+    const [cpuLoad, mem, gpu, osInfo, cpu, disks, network] = await Promise.all([si.currentLoad(), si.mem(), si.graphics(), si.osInfo(), si.cpu(), si.fsSize(), si.networkStats()]);
+    return { cpu: { load: cpuLoad.currentLoad, model: cpu.brand, cores: cpu.cores }, mem: { total: mem.total, used: mem.active, available: mem.available }, gpu: gpu.controllers?.[0] || null, os: osInfo, disks, network };
+  } catch (err) { console.error('Stats error:', err); return { error: true }; }
 }
 
 function createWindow() {
@@ -229,6 +239,7 @@ app.on('before-quit', () => {
   if (crosshairWindow && !crosshairWindow.isDestroyed()) crosshairWindow.destroy();
   boosterController?.restoreOnExit();
   boosterController?.dispose();
+  mobileControlController?.stop();
   discordBotController?.stop().catch(() => {});
   ipPrivacyController?.stop();
 });
@@ -252,7 +263,17 @@ registerUpdatesIpc({
 registerNetworkIpc({ ipcMain, execFile, systeminformation: si });
 registerClipEditorIpc({ ipcMain, app, fs, path, dialog, getMainWindow: () => mainWindow });
 boosterController = registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, systeminformation: si, getSettings, saveSettings, getMainWindow: () => mainWindow });
-registerGameLibraryIpc({ ipcMain, app, dialog, shell, execFile, spawn, fs, path, getSettings, saveSettings, getMainWindow: () => mainWindow });
+gameLibraryController = registerGameLibraryIpc({ ipcMain, app, dialog, shell, execFile, spawn, fs, path, getSettings, saveSettings, getMainWindow: () => mainWindow });
+mobileControlController = registerMobileControl({
+  ipcMain,
+  getStatus: getSystemStats,
+  getBooster: () => boosterController?.getState?.() || { success: false, session: {} },
+  applyBoost: () => boosterController?.apply?.() || { success: false, message: 'The booster is not ready.' },
+  restoreBoost: () => boosterController?.restore?.() || { success: false, message: 'The booster is not ready.' },
+  scanGames: () => gameLibraryController?.scan?.() || { success: false, games: [] },
+  launchGame: id => gameLibraryController?.launch?.({ id }) || { success: false, message: 'The game library is not ready.' },
+  focusDesktop: () => { if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus(); } }
+});
 discordBotController = registerDiscordBot({
   ipcMain,
   BrowserWindow,
@@ -280,12 +301,7 @@ ipPrivacyController = registerIpPrivacy({
 ipcMain.on('window:minimize', () => mainWindow?.minimize());
 ipcMain.on('window:close', () => app.quit());
 
-ipcMain.handle('system:getStats', async () => {
-  try {
-    const [cpuLoad, mem, gpu, os, cpu, disks, network] = await Promise.all([si.currentLoad(), si.mem(), si.graphics(), si.osInfo(), si.cpu(), si.fsSize(), si.networkStats()]);
-    return { cpu: { load: cpuLoad.currentLoad, model: cpu.brand, cores: cpu.cores }, mem: { total: mem.total, used: mem.active, available: mem.available }, gpu: gpu.controllers?.[0] || null, os, disks, network };
-  } catch (err) { console.error('Stats error:', err); return { error: true }; }
-});
+ipcMain.handle('system:getStats', getSystemStats);
 
 ipcMain.handle('clips:getSources', async () => {
   const sources = await desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: { width: 320, height: 180 } });

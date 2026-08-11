@@ -16,6 +16,21 @@ function toast(message) {
 }
 function setBootStatus(message) { const node = $('#bootStatus'); if (node) node.textContent = message; }
 function setOnlineCopy(id, value) { const node = $(id); if (node) node.textContent = value; }
+function renderMobileControlStatus(status = {}) {
+  const running = Boolean(status.running);
+  const badge = $('#mobileControlState');
+  badge.dataset.state = running ? 'on' : 'off';
+  badge.textContent = running ? 'ON' : 'OFF';
+  $('#mobileControlPairing').hidden = !running;
+  $('#mobileControlUrl').value = status.url || '';
+  $('#startMobileControlBtn').hidden = running;
+  $('#stopMobileControlBtn').hidden = !running;
+  $('#mobileControlStatus').textContent = status.message || (running ? 'Wi-Fi Control Center is running.' : 'Wi-Fi Control Center is off.');
+}
+async function refreshMobileControlStatus() {
+  try { renderMobileControlStatus(await window.coreShiftAPI.getMobileControlStatus()); }
+  catch (error) { $('#mobileControlStatus').textContent = error.message || 'Wi-Fi Control Center is unavailable.'; }
+}
 async function refreshOnlineStatus() {
   const online = navigator.onLine;
   const badge = $('#onlineStatus');
@@ -143,6 +158,22 @@ async function refreshStats() {
 $('#refreshStatsBtn').addEventListener('click', () => { refreshStats(); toast('Telemetry refreshed'); });
 $('#monitorRefreshBtn').addEventListener('click', () => { refreshStats(); toast('System monitor refreshed'); });
 $('#refreshOnlineStatusBtn').addEventListener('click', async () => { await refreshOnlineStatus(); toast('Connection status refreshed.'); });
+$('#startMobileControlBtn').addEventListener('click', async () => {
+  const result = await window.coreShiftAPI.startMobileControl();
+  renderMobileControlStatus(result);
+  toast(result.success ? 'Wi-Fi Control Center started. Open the link on your phone.' : (result.message || 'Wi-Fi Control Center could not start.'));
+});
+$('#stopMobileControlBtn').addEventListener('click', async () => {
+  const result = await window.coreShiftAPI.stopMobileControl();
+  renderMobileControlStatus(result);
+  toast('Wi-Fi Control Center stopped and paired phones disconnected.');
+});
+$('#copyMobileControlUrlBtn').addEventListener('click', async () => {
+  const value = $('#mobileControlUrl').value;
+  if (!value) return toast('Start Wi-Fi Control Center first.');
+  try { await navigator.clipboard.writeText(value); toast('Phone pairing link copied.'); }
+  catch { $('#mobileControlUrl').select(); document.execCommand('copy'); toast('Phone pairing link copied.'); }
+});
 window.addEventListener('online', refreshOnlineStatus);
 window.addEventListener('offline', refreshOnlineStatus);
 
@@ -675,6 +706,7 @@ async function renderAdminAudit() {
 async function initialize() {
   setBootStatus('Loading secure local preferences…');
   settings = await window.coreShiftAPI.getSettings(); const mysql = settings.mysql || {}; const admin = settings.admin || {};
+  await refreshMobileControlStatus();
   $('#mysqlHost').value = mysql.host || '127.0.0.1'; $('#mysqlPort').value = mysql.port || 3306; $('#mysqlUser').value = mysql.user || 'root'; $('#mysqlPassword').value = mysql.password || ''; $('#mysqlDatabase').value = mysql.database || '';
   $('#adminTitle').value = admin.title || ''; $('#adminDescription').value = admin.description || ''; $('#adminBrand').value = admin.brand || ''; $('#virusTotalKey').value = settings.virustotalApiKey || ''; $('#overlayToggle').checked = Boolean(settings.overlayEnabled);
   const discordPresence = settings.discordPresence || {}; $('#discordPresenceToggle').checked = Boolean(discordPresence.enabled); $('#discordClientId').value = discordPresence.clientId || ''; $('#discordDetails').value = discordPresence.details || 'Using the CoreShift Desktop Suite'; $('#discordState').value = discordPresence.state || 'Game Control Center';

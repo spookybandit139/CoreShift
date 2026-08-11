@@ -241,7 +241,7 @@ function registerGameLibraryIpc({ ipcMain, app, dialog, shell, execFile, spawn, 
   handle('library:platform:open', openPlatform);
   handle('library:destination:open', openDestination);
 
-  return { scan: scanLibrary };
+  return { scan: scanLibrary, launch: launchGame };
 }
 
 function validCustomRecord(record) {
