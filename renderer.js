@@ -24,10 +24,11 @@ function renderMobileControlStatus(status = {}) {
   badge.textContent = status.paired ? 'PAIRED' : (running ? 'ON' : 'OFF');
   $('#mobileControlPairing').hidden = !waitingForPair;
   $('#mobileControlUrl').value = status.url || '';
+  $('#mobileControlAccessCode').value = status.accessCode || '';
   $('#startMobileControlBtn').hidden = running;
   $('#newMobileControlPairingBtn').hidden = !running;
   $('#stopMobileControlBtn').hidden = !running;
-  $('#mobileControlStatus').textContent = status.message || (running ? 'Wi-Fi Control Center is running.' : 'Wi-Fi Control Center is off.');
+  $('#mobileControlStatus').textContent = status.message || (running ? 'Mobile Bot Command Center is running.' : 'Mobile Bot Command Center is off.');
 }
 async function refreshMobileControlStatus() {
   try { renderMobileControlStatus(await window.coreShiftAPI.getMobileControlStatus()); }
@@ -163,23 +164,23 @@ $('#refreshOnlineStatusBtn').addEventListener('click', async () => { await refre
 $('#startMobileControlBtn').addEventListener('click', async () => {
   const result = await window.coreShiftAPI.startMobileControl();
   renderMobileControlStatus(result);
-  toast(result.success ? 'Wi-Fi Control Center started. Open the link on your phone.' : (result.message || 'Wi-Fi Control Center could not start.'));
+  toast(result.success ? 'Bot remote started. Open the link and enter the 4-digit code on your phone.' : (result.message || 'Mobile Bot Command Center could not start.'));
 });
 $('#stopMobileControlBtn').addEventListener('click', async () => {
   const result = await window.coreShiftAPI.stopMobileControl();
   renderMobileControlStatus(result);
-  toast('Wi-Fi Control Center stopped and paired phones disconnected.');
+  toast('Mobile Bot Command Center stopped and the paired phone was disconnected.');
 });
 $('#newMobileControlPairingBtn').addEventListener('click', async () => {
   const result = await window.coreShiftAPI.resetMobileControlPairing();
   renderMobileControlStatus(result);
-  toast(result.success ? 'Created a fresh pairing link and disconnected the previous phone.' : (result.message || 'Could not create a new pairing link.'));
+  toast(result.success ? 'Created a fresh private link and 4-digit code; the previous phone was disconnected.' : (result.message || 'Could not create a new pairing link.'));
 });
 $('#copyMobileControlUrlBtn').addEventListener('click', async () => {
   const value = $('#mobileControlUrl').value;
-  if (!value) return toast('Start Wi-Fi Control Center first.');
-  try { await navigator.clipboard.writeText(value); toast('Phone pairing link copied.'); }
-  catch { $('#mobileControlUrl').select(); document.execCommand('copy'); toast('Phone pairing link copied.'); }
+  if (!value) return toast('Start Mobile Bot Command Center first.');
+  try { await navigator.clipboard.writeText(value); toast('Private phone link copied.'); }
+  catch { $('#mobileControlUrl').select(); document.execCommand('copy'); toast('Private phone link copied.'); }
 });
 window.addEventListener('online', refreshOnlineStatus);
 window.addEventListener('offline', refreshOnlineStatus);

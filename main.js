@@ -282,18 +282,11 @@ boosterController = registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, s
 gameLibraryController = registerGameLibraryIpc({ ipcMain, app, dialog, shell, execFile, spawn, fs, path, getSettings, saveSettings, getMainWindow: () => mainWindow });
 mobileControlController = registerMobileControl({
   ipcMain,
-  getStatus: getSystemStats,
-  getBooster: () => boosterController?.getState?.() || { success: false, session: {} },
-  applyBoost: () => boosterController?.apply?.() || { success: false, message: 'The booster is not ready.' },
-  restoreBoost: () => boosterController?.restore?.() || { success: false, message: 'The booster is not ready.' },
-  scanGames: () => gameLibraryController?.scan?.() || { success: false, games: [] },
-  launchGame: id => gameLibraryController?.launch?.({ id }) || { success: false, message: 'The game library is not ready.' },
-  focusDesktop: () => { if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus(); } },
   getPreferredAddress: getPreferredMobileAddress,
-  getBot: () => discordBotController?.getStatus?.() || { success: false, message: 'Discord bot controls are still loading.' },
-  startBot: () => discordBotController?.start?.() || { success: false, message: 'Discord bot controls are not ready.' },
-  stopBot: () => discordBotController?.stopFromController?.() || { success: false, message: 'Discord bot controls are not ready.' },
-  syncBot: () => discordBotController?.syncFromController?.() || { success: false, message: 'Discord bot controls are not ready.' }
+  getBot: () => discordBotController?.getMobileStatus?.() || { success: false, message: 'Discord bot controls are still loading.' },
+  startBot: () => discordBotController?.startFromMobile?.() || { success: false, message: 'Discord bot controls are not ready.' },
+  stopBot: () => discordBotController?.stopFromMobile?.() || { success: false, message: 'Discord bot controls are not ready.' },
+  syncBot: () => discordBotController?.syncFromMobile?.() || { success: false, message: 'Discord bot controls are not ready.' }
 });
 discordBotController = registerDiscordBot({
   ipcMain,
