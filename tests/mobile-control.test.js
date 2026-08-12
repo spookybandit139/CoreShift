@@ -48,6 +48,8 @@ async function smokeTestServer() {
     const pairingPage = await request(pairUrl, { method: 'GET' });
     assert.strictEqual(pairingPage.status, 200);
     assert.match(pairingPage.text, /Enter security code/);
+    assert.match(pairingPage.text, /6-digit code/);
+    assert.match(pairingPage.text, /maxlength="6"/);
     const pendingCookie = pairingPage.headers['set-cookie'][0].split(';')[0];
     const wrongPin = await request(`http://127.0.0.1:${pairUrl.port}/pair/verify`, { method: 'POST', headers: { Cookie: pendingCookie, 'Content-Type': 'application/json' } }, JSON.stringify({ code: '000000' }));
     assert.strictEqual(wrongPin.status, 403);
