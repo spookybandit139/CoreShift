@@ -238,6 +238,11 @@
             <label class="discord-field">When someone pings the bot<textarea id="discordBotMentionReply" maxlength="500" placeholder="Hey {user}! Need something? Try /help."></textarea></label>
             <label class="discord-field">Keyword replies <small>One per line: words separated by | then =&gt; response. Use {user} or {server}.</small><textarea id="discordBotKeywordReplies" maxlength="4000" spellcheck="false"></textarea></label>
           </div>
+          <div class="bot-auto-replies">
+            <b>WELCOME &amp; JOIN SOURCE</b><small>Welcome each new member in one channel and ask where they found El Rancho. The menu clearly tells members that their choice, Discord ID, username, account-created date, join date, and response time are saved to MySQL. It does not collect IP, device, or location data.</small>
+            <label class="bot-switch"><span><b>Enable welcome message</b><small>Requires Server Members Intent in the Discord Developer Portal</small></span><input id="discordBotWelcomeEnabled" type="checkbox"><i></i></label>
+            <label class="discord-field">Welcome channel ID<input id="discordBotWelcomeChannelId" inputmode="numeric" maxlength="22" placeholder="Right-click channel → Copy Channel ID"></label>
+          </div>
           <div class="bot-command-actions">
             <button id="saveDiscordBotBtn" type="button" class="primary">Save encrypted token &amp; settings</button>
             <button id="startDiscordBotBtn" type="button" class="outline">Start bot</button>

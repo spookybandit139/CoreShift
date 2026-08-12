@@ -28,6 +28,9 @@ async function run() {
   const source = fs.readFileSync(path.join(__dirname, '..', 'main', 'discord-bot.js'), 'utf8');
   assert.ok(source.includes('Routes.applicationGuildCommands(APPLICATION_ID, guildId), { body: COMMANDS }'), 'Every connected server must receive an instant command copy.');
   assert.ok(!source.includes('body: []'), 'Sync must not clear server command scopes.');
+  assert.ok(source.includes('GatewayIntentBits.GuildMembers'), 'Welcome flow must subscribe to member joins.');
+  assert.ok(source.includes('discord_join_sources'), 'Welcome source answers must be saved to the dedicated database table.');
+  assert.ok(source.includes('We do not collect IP addresses'), 'Welcome source menu must disclose its data use.');
   for (const forbidden of FORBIDDEN_COMMAND_NAMES) assert.ok(!COMMAND_NAMES.includes(forbidden), 'Unsafe command registered: ' + forbidden);
   for (const variation of ['clearserver', 'clear-server', 'clear_server', 'nuke', 'purge', 'wipe', 'ban-all', 'kick_all', 'eval', 'exec']) {
     assert.equal(isDestructiveCommandName(variation), true, 'Destructive variation was not blocked: ' + variation);
@@ -39,8 +42,8 @@ async function run() {
 
   const statements = [];
   await ensureBotTables({ async query(sql) { statements.push(sql); return [[], []]; } });
-  assert.equal(statements.length, 5);
-  for (const table of ['discord_missions', 'discord_benchmarks', 'discord_reminders', 'discord_suggestions', 'discord_shared_clips']) {
+  assert.equal(statements.length, 6);
+  for (const table of ['discord_missions', 'discord_benchmarks', 'discord_reminders', 'discord_suggestions', 'discord_shared_clips', 'discord_join_sources']) {
     assert.ok(statements.some(sql => sql.includes(table)), 'Missing table creation: ' + table);
   }
 
