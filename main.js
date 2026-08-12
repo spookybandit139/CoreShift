@@ -286,7 +286,8 @@ mobileControlController = registerMobileControl({
   getBot: () => discordBotController?.getMobileStatus?.() || { success: false, message: 'Discord bot controls are still loading.' },
   startBot: () => discordBotController?.startFromMobile?.() || { success: false, message: 'Discord bot controls are not ready.' },
   stopBot: () => discordBotController?.stopFromMobile?.() || { success: false, message: 'Discord bot controls are not ready.' },
-  syncBot: () => discordBotController?.syncFromMobile?.() || { success: false, message: 'Discord bot controls are not ready.' }
+  syncBot: () => discordBotController?.syncFromMobile?.() || { success: false, message: 'Discord bot controls are not ready.' },
+  postBotMessage: payload => discordBotController?.postFromMobile?.(payload) || { success: false, message: 'Discord bot controls are not ready.' }
 });
 discordBotController = registerDiscordBot({
   ipcMain,

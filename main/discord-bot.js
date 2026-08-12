@@ -381,7 +381,12 @@ function registerDiscordBot({ ipcMain, BrowserWindow, app, fs, path, safeStorage
       } catch (error) { return { success: false, message: cleanDiscordError(error) }; }
     },
     async getMobileStatus() {
-      return { success: true, status: { ...status }, message: status.message || 'Bot Command Center is ready.' };
+      const guilds = client?.isReady() ? [...client.guilds.cache.values()].map(guild => ({
+        id: guild.id,
+        name: guild.name,
+        channels: [...guild.channels.cache.values()].filter(channel => channel.isTextBased?.() && !channel.isThread?.()).slice(0, 100).map(channel => ({ id: channel.id, name: channel.name || 'channel' }))
+      })) : [];
+      return { success: true, status: { ...status }, message: status.message || 'Bot Command Center is ready.', commands: COMMAND_NAMES, guilds };
     },
     async startFromMobile() {
       return startBot();
@@ -396,6 +401,26 @@ function registerDiscordBot({ ipcMain, BrowserWindow, app, fs, path, safeStorage
         const sync = await syncCommands(token, getConfig(), client?.isReady() ? [...client.guilds.cache.keys()] : []);
         return { success: true, sync, message: syncMessage(sync) };
       } catch (error) { return { success: false, message: cleanDiscordError(error) }; }
+    },
+    async postFromMobile(payload = {}) {
+      if (!client?.isReady()) return { success: false, message: 'Start the Discord bot before posting from your phone.' };
+      const guild = client.guilds.cache.get(String(payload.guildId || ''));
+      const channel = guild ? await guild.channels.fetch(String(payload.channelId || '')).catch(() => null) : null;
+      if (!channel?.isTextBased?.() || !channel.send) return { success: false, message: 'Choose a text channel in a server where the bot is online.' };
+      const type = String(payload.type || 'announcement');
+      const serverName = guild.name || 'El Rancho';
+      let embed;
+      if (type === 'rules') embed = prefixRulesEmbed(serverName);
+      else if (type === 'welcome') embed = baseEmbed('Welcome to ' + serverName, 'Glad you are here. Say hi, find a game, or jump into VC and chill with everyone.');
+      else if (type === 'security') embed = baseEmbed(serverName + ' safety', 'Do not share passwords or tokens, avoid suspicious links and downloads, and report scams or harassment to staff.');
+      else {
+        const title = String(payload.title || serverName + ' announcement').trim().slice(0, 256);
+        const message = String(payload.message || '').trim().slice(0, 4000);
+        if (!message) return { success: false, message: 'Write an announcement before posting.' };
+        embed = baseEmbed('📢 ' + title, message);
+      }
+      await channel.send({ embeds: [embed], allowedMentions: { parse: [] } });
+      return { success: true, message: 'Posted to #' + (channel.name || 'channel') + '.' };
     }
   };
 }
