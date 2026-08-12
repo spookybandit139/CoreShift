@@ -231,6 +231,18 @@
           <small class="bot-token-warning">Never paste this token into chat, GitHub, screenshots, or MySQL. If it is exposed, reset it before saving.</small>
           <label class="discord-field">Preferred test server ID <small>(optional; every server the bot is in now receives an instant command copy)</small><input id="discordBotGuildId" inputmode="numeric" maxlength="22" placeholder="Optional — use this to inspect one server"></label>
           <label class="bot-switch"><span><b>Start bot with CoreShift</b><small>Keep the bot online while the owner app is running</small></span><input id="discordBotAutoStart" type="checkbox"><i></i></label>
+          <div class="bot-auto-replies">
+            <b>CHAT &amp; ! COMMANDS</b><small>Enable Message Content Intent in Discord Developer Portal → Bot → Privileged Gateway Intents, then restart the bot. This is required for all `!` commands and keyword replies.</small>
+            <label class="bot-switch"><span><b>Enable chat replies</b><small>One reply per person per channel every 15 seconds</small></span><input id="discordBotAutoReplies" type="checkbox" checked><i></i></label>
+            <label class="discord-field">Server name in replies<input id="discordBotServerName" maxlength="80" placeholder="El Rancho"></label>
+            <label class="discord-field">When someone pings the bot<textarea id="discordBotMentionReply" maxlength="500" placeholder="Hey {user}! Need something? Try /help."></textarea></label>
+            <label class="discord-field">Keyword replies <small>One per line: words separated by | then =&gt; response. Use {user} or {server}.</small><textarea id="discordBotKeywordReplies" maxlength="4000" spellcheck="false"></textarea></label>
+          </div>
+          <div class="bot-auto-replies">
+            <b>WELCOME &amp; JOIN SOURCE</b><small>Welcome each new member in one channel and ask where they found El Rancho. The menu clearly tells members that their choice, Discord ID, username, account-created date, join date, and response time are saved to MySQL. It does not collect IP, device, or location data.</small>
+            <label class="bot-switch"><span><b>Enable welcome message</b><small>Requires Server Members Intent in the Discord Developer Portal</small></span><input id="discordBotWelcomeEnabled" type="checkbox"><i></i></label>
+            <label class="discord-field">Welcome channel ID<input id="discordBotWelcomeChannelId" inputmode="numeric" maxlength="22" placeholder="Right-click channel → Copy Channel ID"></label>
+          </div>
           <div class="bot-command-actions">
             <button id="saveDiscordBotBtn" type="button" class="primary">Save encrypted token &amp; settings</button>
             <button id="startDiscordBotBtn" type="button" class="outline">Start bot</button>
@@ -249,6 +261,7 @@
           <h3>Three steps to online</h3>
           <ol><li><b>Reset the exposed token</b><span>Use Open Bot setup and select Reset Token.</span></li><li><b>Paste and save</b><span>Use the visible secure field on this panel.</span></li><li><b>Start and register</b><span>Bring the bot online, then publish its slash commands.</span></li></ol>
           <div class="bot-command-deck"><b>28-command deck</b><div id="botCommandDeckList"><code>/help</code><code>/ping</code><code>/status</code><code>/coreshift</code><code>/invite</code><code>/server</code><code>/membercount</code><code>/channelinfo</code><code>/roleinfo</code><code>/servericon</code><code>/roles</code><code>/avatar</code><code>/userinfo</code><code>/choose</code><code>/random</code><code>/roll</code><code>/poll</code><code>/announce</code><code>/verification</code><code>/fpsguide</code><code>/clipchallenge</code><code>/remind</code><code>/suggest</code><code>/suggestions</code><code>/clipshare</code><code>/clips</code><code>/mission</code><code>/benchmark</code></div></div>
+          <div class="bot-command-deck bot-prefix-command-deck"><b>El Rancho ! command quick reference</b><small>Public posts first, then staff-only tools. `!serverinvite` posts a safe invite in the current channel; it does not mass-DM or mass-ping members.</small><div><code>!cmds</code><code>!rules</code><code>!serverinfo</code><code>!welcome</code><code>!security</code><code>!staffhelp</code><code>!announce &lt;message&gt;</code><code>!embed &lt;title&gt; | &lt;message&gt;</code><code>!serverinvite</code><code>!lock</code><code>!unlock</code><code>!slowmode &lt;seconds&gt;</code></div></div>
         </article>
       </div>
     </section>

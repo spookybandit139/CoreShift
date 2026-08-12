@@ -14,13 +14,14 @@ const {
   PermissionFlagsBits,
   REST,
   Routes,
-  SlashCommandBuilder
+  SlashCommandBuilder,
+  StringSelectMenuBuilder
 } = require('discord.js');
 const crypto = require('crypto');
 
 const APPLICATION_ID = '1414846841371099156';
 // Existing read/send/embed/history permissions plus Manage Roles for verification only.
-const INVITE_PERMISSIONS = '268520448';
+const INVITE_PERMISSIONS = '268520465';
 const IPC_CHANNELS = [
   'bot:status',
   'bot:config:save',
@@ -40,6 +41,23 @@ const CHALLENGES = [
   'Capture a clutch moment and edit it so the final video is under 12 seconds.',
   'Produce a game clip whose audio tells the story before the video does.'
 ];
+const DEFAULT_AUTO_REPLY_CONFIG = Object.freeze({
+  enabled: true,
+  serverName: 'El Rancho',
+  mentionReply: 'Hey {user}! Need something? Try /help to see what I can do.',
+  keywordReplies: [
+    'hello|hi|hey => Hey {user}, welcome to {server}!',
+    'rules => Please take a look at the server rules before jumping in.',
+    'vc|voice chat => Hop into a voice channel and see who is chilling.',
+    'games|gaming => Ask in chat what everyone is playing and squad up.',
+    'help => Try /help for the full command list.'
+  ].join('\n')
+});
+const PREFIX_COMMANDS = Object.freeze([
+  '!cmds', '!rules', '!serverinfo', '!welcome', '!security',
+  '!staffhelp', '!announce <message>', '!embed <title> | <message>',
+  '!serverinvite', '!lock', '!unlock', '!slowmode <0-21600>'
+]);
 
 const guildOnly = builder => builder.setContexts(InteractionContextType.Guild);
 const COMMANDS = [
@@ -148,6 +166,8 @@ function registerDiscordBot({ ipcMain, BrowserWindow, app, fs, path, safeStorage
       applicationId: APPLICATION_ID,
       testGuildId: /^\d{16,22}$/.test(String(value.testGuildId || '').trim()) ? String(value.testGuildId).trim() : '',
       hasToken: fs.existsSync(tokenPath()),
+      autoReplies: normalizeAutoReplyConfig(value.autoReplies),
+      welcome: normalizeWelcomeConfig(value.welcome),
       expectedCommands: COMMAND_NAMES
     };
   }
@@ -185,11 +205,14 @@ function registerDiscordBot({ ipcMain, BrowserWindow, app, fs, path, safeStorage
   async function saveConfig(payload) {
     requireOwner();
     if (payload?.token) saveToken(payload.token);
+    if (payload?.welcome?.enabled && !/^\d{16,22}$/.test(String(payload.welcome.channelId || '').trim())) throw new Error('Copy a valid welcome channel ID before enabling the welcome flow.');
     const current = getSettings();
     const config = {
       enabled: Boolean(payload?.enabled),
       applicationId: APPLICATION_ID,
-      testGuildId: /^\d{16,22}$/.test(String(payload?.testGuildId || '').trim()) ? String(payload.testGuildId).trim() : ''
+      testGuildId: /^\d{16,22}$/.test(String(payload?.testGuildId || '').trim()) ? String(payload.testGuildId).trim() : '',
+      autoReplies: normalizeAutoReplyConfig(payload?.autoReplies),
+      welcome: normalizeWelcomeConfig(payload?.welcome)
     };
     saveSettings({ ...current, discordBot: config });
     return { success: true, config: { ...config, hasToken: Boolean(readToken()), expectedCommands: COMMAND_NAMES }, message: 'Discord bot settings saved securely on this Windows account.' };
@@ -260,9 +283,11 @@ function registerDiscordBot({ ipcMain, BrowserWindow, app, fs, path, safeStorage
     starting = true;
     broadcast({ state: 'connecting', connected: false, message: 'Connecting CoreShift to the Discord gateway...' });
     const config = getConfig();
-    const nextClient = new Client({ intents: [GatewayIntentBits.Guilds] });
+    const nextClient = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
     client = nextClient;
     nextClient.on(Events.InteractionCreate, interaction => handleInteraction(interaction, getDbConnection, inviteUrl, nextClient).catch(error => safeInteractionError(interaction, error)));
+    nextClient.on(Events.MessageCreate, message => handleMessage(message, getConfig, nextClient).catch(error => console.error('Discord message command:', cleanError(error))));
+    nextClient.on(Events.GuildMemberAdd, member => handleMemberWelcome(member, getConfig, getDbConnection).catch(error => console.error('Discord welcome:', cleanError(error))));
     nextClient.on(Events.Error, error => broadcast({ state: 'error', connected: false, message: 'Discord bot error: ' + cleanError(error) }));
     nextClient.on(Events.ShardDisconnect, () => broadcast({ state: 'reconnecting', connected: false, message: 'Discord disconnected. Reconnecting automatically...' }));
     nextClient.on(Events.ShardResume, () => broadcast({ state: 'online', connected: true, message: 'CoreShift bot reconnected.' }));
@@ -377,6 +402,7 @@ function registerDiscordBot({ ipcMain, BrowserWindow, app, fs, path, safeStorage
 
 async function handleInteraction(interaction, getDbConnection, inviteUrl, client) {
   if (interaction.isButton()) return handleVerificationButton(interaction);
+  if (interaction.isStringSelectMenu()) return handleJoinSourceSelect(interaction, getDbConnection);
   if (!interaction.isChatInputCommand()) return;
   const command = interaction.commandName;
   if (isDestructiveCommandName(command)) return interaction.reply({ content: 'That legacy destructive command is permanently disabled in CoreShift.', ephemeral: true });
@@ -438,6 +464,149 @@ async function handleInteraction(interaction, getDbConnection, inviteUrl, client
   if (command === 'mission') return handleMission(interaction, getDbConnection);
   if (command === 'benchmark') return handleBenchmark(interaction, getDbConnection);
 }
+
+function normalizeAutoReplyConfig(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const serverName = String(source.serverName || DEFAULT_AUTO_REPLY_CONFIG.serverName).trim().slice(0, 80) || DEFAULT_AUTO_REPLY_CONFIG.serverName;
+  const mentionReply = String(source.mentionReply || DEFAULT_AUTO_REPLY_CONFIG.mentionReply).trim().slice(0, 500) || DEFAULT_AUTO_REPLY_CONFIG.mentionReply;
+  const keywordReplies = String(source.keywordReplies || DEFAULT_AUTO_REPLY_CONFIG.keywordReplies).trim().slice(0, 4000) || DEFAULT_AUTO_REPLY_CONFIG.keywordReplies;
+  return { enabled: source.enabled !== false, serverName, mentionReply, keywordReplies };
+}
+
+function normalizeWelcomeConfig(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const channelId = String(source.channelId || '').trim();
+  return { enabled: Boolean(source.enabled) && /^\d{16,22}$/.test(channelId), channelId };
+}
+
+function joinSourceOptions() {
+  return [
+    { label: 'Friend / member invitation', value: 'friend_or_member', description: 'Someone invited or told me about it' },
+    { label: 'Discord server discovery', value: 'discord_discovery', description: 'I found it through Discord' },
+    { label: 'TikTok / social media', value: 'social_media', description: 'I saw it on TikTok or another social app' },
+    { label: 'Gaming community', value: 'gaming_community', description: 'I found it through a game or gaming group' },
+    { label: 'Other', value: 'other', description: 'Something else' }
+  ];
+}
+
+async function handleMemberWelcome(member, getConfig, getDbConnection) {
+  if (member.user?.bot) return;
+  const welcome = getConfig().welcome;
+  if (!welcome.enabled) return;
+  const channel = await member.guild.channels.fetch(welcome.channelId).catch(() => null);
+  if (!channel?.isTextBased?.() || !channel.send) return;
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId('elrancho:join-source:' + member.id)
+    .setPlaceholder('Where did you find El Rancho?')
+    .setMinValues(1)
+    .setMaxValues(1)
+    .addOptions(joinSourceOptions());
+  await channel.send({
+    content: 'Welcome to **' + member.guild.name + '**, <@' + member.id + '>! 🎮',
+    embeds: [baseEmbed('Quick welcome check-in', 'Where did you find the server? Your answer helps staff understand what brings people here. We save your selected answer, Discord user ID, username, account-created date, server-join date, and response time in the server database. We do not collect IP addresses, device data, or location.')],
+    components: [new ActionRowBuilder().addComponents(menu)],
+    allowedMentions: { parse: [], users: [member.id], roles: [] }
+  });
+}
+
+async function handleJoinSourceSelect(interaction, getDbConnection) {
+  const parts = String(interaction.customId || '').split(':');
+  if (parts.length !== 3 || parts[0] !== 'elrancho' || parts[1] !== 'join-source') return;
+  if (parts[2] !== interaction.user.id) return interaction.reply({ content: 'This welcome menu belongs to another member.', ephemeral: true });
+  const selected = String(interaction.values?.[0] || '');
+  const valid = joinSourceOptions().some(option => option.value === selected);
+  if (!valid || !interaction.guildId) return interaction.reply({ content: 'That answer is not valid. Please use the welcome menu again.', ephemeral: true });
+  const connection = getDbConnection();
+  if (!connection) return interaction.reply({ content: 'The server database is offline, so your answer was not saved. Please try again later.', ephemeral: true });
+  try {
+    await ensureBotTables(connection);
+    const joinedAt = interaction.member?.joinedTimestamp ? new Date(interaction.member.joinedTimestamp) : new Date();
+    await connection.query('INSERT INTO discord_join_sources (guild_id, discord_user_id, discord_username, account_created_at, joined_at, source) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE discord_username = VALUES(discord_username), account_created_at = VALUES(account_created_at), joined_at = VALUES(joined_at), source = VALUES(source), responded_at = CURRENT_TIMESTAMP', [interaction.guildId, interaction.user.id, interaction.user.username, new Date(interaction.user.createdTimestamp), joinedAt, selected]);
+    const label = joinSourceOptions().find(option => option.value === selected)?.label || 'your answer';
+    return interaction.reply({ content: 'Thanks — saved **' + label + '** as how you found the server.', ephemeral: true });
+  } catch (error) { return interaction.reply({ content: 'Your answer could not be saved: ' + cleanError(error), ephemeral: true }); }
+}
+
+function parseKeywordReplies(value) {
+  return String(value || '').split(/\r?\n/).map(line => {
+    const divider = line.indexOf('=>');
+    if (divider < 1) return null;
+    const keywords = line.slice(0, divider).split('|').map(word => word.trim().toLowerCase()).filter(word => word.length >= 2 && word.length <= 64).slice(0, 10);
+    const response = line.slice(divider + 2).trim().slice(0, 500);
+    return keywords.length && response ? { keywords, response } : null;
+  }).filter(Boolean).slice(0, 20);
+}
+
+const autoReplyCooldowns = new Map();
+function canAutoReply(message) {
+  const key = message.guildId + ':' + message.channelId + ':' + message.author.id;
+  const now = Date.now(); const previous = autoReplyCooldowns.get(key) || 0;
+  if (now - previous < 15000) return false;
+  autoReplyCooldowns.set(key, now);
+  if (autoReplyCooldowns.size > 2000) for (const [storedKey, timestamp] of autoReplyCooldowns) if (now - timestamp > 60000) autoReplyCooldowns.delete(storedKey);
+  return true;
+}
+function replyTemplate(template, message, config) { return String(template).replaceAll('{user}', '<@' + message.author.id + '>').replaceAll('{server}', config.serverName); }
+function parsePrefixCommand(content) {
+  const raw = String(content || '').trim(); if (!raw.startsWith('!')) return null;
+  const [command = '', ...parts] = raw.slice(1).split(/\s+/);
+  return { command: command.toLowerCase(), arguments: parts.join(' ').trim() };
+}
+function memberCan(message, permission) { return Boolean(message.member?.permissions?.has(permission)); }
+async function handleMessage(message, getConfig, client) {
+  if (!message.guildId || message.author?.bot || !message.content) return;
+  if (await handlePrefixCommand(message, getConfig)) return;
+  const config = getConfig().autoReplies;
+  if (!config.enabled || !canAutoReply(message)) return;
+  let response = '';
+  if (client.user && message.mentions.users.has(client.user.id)) response = config.mentionReply;
+  else {
+    const content = message.content.toLowerCase();
+    const match = parseKeywordReplies(config.keywordReplies).find(rule => rule.keywords.some(keyword => new RegExp('(^|[^a-z0-9])' + escapeRegex(keyword) + '($|[^a-z0-9])', 'i').test(content)));
+    response = match?.response || '';
+  }
+  if (response) await message.reply({ content: '**' + config.serverName + '** • ' + replyTemplate(response, message, config), allowedMentions: { parse: [], users: [message.author.id], roles: [] } });
+}
+async function sendPrefixHelp(message, staffOnly = false) {
+  const publicCommands = ['`!cmds` — show this list', '`!rules` — post the server rules', '`!serverinfo` — show server information', '`!welcome` — post a welcome message', '`!security` — show community safety info'];
+  const staffCommands = ['`!staffhelp` — show staff commands', '`!announce <message>` — post an announcement', '`!embed <title> | <message>` — post a formatted panel', '`!serverinvite` — post a seven-day server invite', '`!lock` / `!unlock` — lock or reopen this channel', '`!slowmode <0–21600>` — set channel slowmode'];
+  const embed = baseEmbed(staffOnly ? 'El Rancho staff commands' : 'El Rancho commands', (staffOnly ? staffCommands : publicCommands).join('\n'));
+  if (!staffOnly) embed.addFields({ name: 'Staff', value: 'Staff with the needed Discord permissions can use `!staffhelp`.' });
+  return message.reply({ embeds: [embed], allowedMentions: { parse: [] } });
+}
+function prefixRulesEmbed(serverName) { return baseEmbed(serverName + ' rules', ['**1.** Be respectful — no harassment, hate, or targeted drama.', '**2.** Keep chats and voice channels chill; do not spam or mic spam.', '**3.** No NSFW, scams, malicious links, cheats, or account-selling.', '**4.** Use the right channels and listen to staff when they step in.', '**5.** Have fun, game together, and help keep ' + serverName + ' welcoming.'].join('\n')); }
+async function handlePrefixCommand(message, getConfig) {
+  const parsed = parsePrefixCommand(message.content); if (!parsed) return false;
+  const { command, arguments: args } = parsed; const serverName = getConfig().autoReplies.serverName || message.guild.name || 'El Rancho';
+  if (command === 'cmds') { await sendPrefixHelp(message); return true; }
+  if (command === 'rules') { await message.reply({ embeds: [prefixRulesEmbed(serverName)], allowedMentions: { parse: [] } }); return true; }
+  if (command === 'serverinfo') { await message.reply({ embeds: [baseEmbed(serverName + ' server information', 'Gaming, hanging out, and finding people to chill with in VC.').addFields({ name: 'Members', value: String(message.guild.memberCount || 0), inline: true }, { name: 'Channels', value: String(message.guild.channels.cache.size || 0), inline: true }, { name: 'Getting started', value: 'Read the rules, pick your roles, then jump into chat or VC.' })], allowedMentions: { parse: [] } }); return true; }
+  if (command === 'welcome') { await message.reply({ embeds: [baseEmbed('Welcome to ' + serverName, 'Glad you are here. Say hi, find a game, or jump into VC and chill with everyone.')], allowedMentions: { parse: [] } }); return true; }
+  if (command === 'security') { await message.reply({ embeds: [baseEmbed(serverName + ' safety', 'Do not share passwords or tokens, avoid suspicious links and downloads, and report scams or harassment to staff.')], allowedMentions: { parse: [] } }); return true; }
+  const staffCommands = new Set(['staffhelp', 'announce', 'embed', 'serverinvite', 'lock', 'unlock', 'slowmode']);
+  if (!staffCommands.has(command)) return false;
+  if (!memberCan(message, PermissionFlagsBits.ManageGuild) && ['staffhelp', 'announce', 'embed', 'serverinvite'].includes(command)) { await message.reply('You need the **Manage Server** permission for that staff command.'); return true; }
+  if (command === 'staffhelp') { await sendPrefixHelp(message, true); return true; }
+  if (command === 'announce' || command === 'embed') {
+    if (!args) { await message.reply(command === 'announce' ? 'Use `!announce <message>`.' : 'Use `!embed <title> | <message>`.'); return true; }
+    if (command === 'announce') await message.channel.send({ embeds: [baseEmbed('📢 ' + serverName + ' announcement', args.slice(0, 4000))], allowedMentions: { parse: [] } });
+    else { const divider = args.indexOf('|'); if (divider < 1) await message.reply('Use `!embed <title> | <message>`.'); else await message.channel.send({ embeds: [baseEmbed(args.slice(0, divider).trim(), args.slice(divider + 1).trim() || ' ')], allowedMentions: { parse: [] } }); }
+    return true;
+  }
+  if (command === 'serverinvite') {
+    if (!message.channel?.createInvite) { await message.reply('Use this command in a regular server text channel.'); return true; }
+    try { const invite = await message.channel.createInvite({ maxAge: 604800, maxUses: 0, unique: true, reason: 'El Rancho staff invite by ' + message.author.tag }); await message.channel.send({ embeds: [baseEmbed('Join ' + serverName, 'El Rancho is a chill gaming and hangout server to talk in VC, play games, meet people, and have a good time.\n\n[Join the server](https://discord.gg/' + invite.code + ')')], allowedMentions: { parse: [] } }); }
+    catch { await message.reply('I could not create an invite. Give the bot the **Create Invite** permission in this channel and try again.'); }
+    return true;
+  }
+  if (!memberCan(message, PermissionFlagsBits.ManageChannels)) { await message.reply('You need the **Manage Channels** permission for that channel security command.'); return true; }
+  if (!message.channel?.permissionOverwrites?.edit || !message.guild?.roles?.everyone) { await message.reply('That command only works in a standard server text channel.'); return true; }
+  if (command === 'lock' || command === 'unlock') { await message.channel.permissionOverwrites.edit(message.guild.roles.everyone, { SendMessages: command === 'lock' ? false : null }, { reason: 'El Rancho staff command by ' + message.author.tag }); await message.channel.send({ content: command === 'lock' ? '🔒 This channel is now locked by staff.' : '🔓 This channel is open again.', allowedMentions: { parse: [] } }); return true; }
+  const seconds = Number(args); if (!Number.isInteger(seconds) || seconds < 0 || seconds > 21600) { await message.reply('Use `!slowmode <0–21600>` — use 0 to turn it off.'); return true; }
+  if (!message.channel.setRateLimitPerUser) { await message.reply('This channel does not support slowmode.'); return true; }
+  await message.channel.setRateLimitPerUser(seconds, 'El Rancho staff command by ' + message.author.tag); await message.channel.send({ content: seconds ? '⏱️ Slowmode is now ' + seconds + ' second(s).' : '⏱️ Slowmode is now off.', allowedMentions: { parse: [] } }); return true;
+}
+function escapeRegex(value) { return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
 function handleServer(interaction) {
   if (!interaction.guild) return interaction.reply({ content: 'Use this command inside a server.', ephemeral: true });
@@ -752,6 +921,7 @@ async function ensureBotTables(connection) {
   await connection.query('CREATE TABLE IF NOT EXISTS discord_reminders (id BIGINT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(32) NOT NULL, channel_id VARCHAR(32) NOT NULL, discord_user_id VARCHAR(32) NOT NULL, reminder_text VARCHAR(500) NOT NULL, remind_at DATETIME NOT NULL, delivered TINYINT NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_discord_reminder_due (delivered, remind_at))');
   await connection.query('CREATE TABLE IF NOT EXISTS discord_suggestions (id BIGINT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(32) NOT NULL, discord_user_id VARCHAR(32) NOT NULL, discord_username VARCHAR(100) NOT NULL, suggestion TEXT NOT NULL, status VARCHAR(20) NOT NULL DEFAULT "open", created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_discord_suggestion (guild_id, id))');
   await connection.query('CREATE TABLE IF NOT EXISTS discord_shared_clips (id BIGINT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(32) NOT NULL, discord_user_id VARCHAR(32) NOT NULL, discord_username VARCHAR(100) NOT NULL, clip_url TEXT NOT NULL, game VARCHAR(80), caption VARCHAR(300), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX idx_discord_clips (guild_id, id))');
+  await connection.query('CREATE TABLE IF NOT EXISTS discord_join_sources (id BIGINT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(32) NOT NULL, discord_user_id VARCHAR(32) NOT NULL, discord_username VARCHAR(100) NOT NULL, account_created_at DATETIME NOT NULL, joined_at DATETIME NOT NULL, source VARCHAR(64) NOT NULL, responded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uniq_discord_join_source (guild_id, discord_user_id), INDEX idx_discord_join_source (guild_id, source))');
 }
 
 async function deliverDueReminders(client, getDbConnection) {
@@ -815,11 +985,11 @@ function cleanDiscordError(error) {
   const message = cleanError(error);
   if (/token|401|unauthorized/i.test(message)) return 'Discord rejected the bot token. Reset it on the Developer Portal Bot page, then paste the new token into CoreShift.';
   if (/missing access|unknown guild|50001|10004/i.test(message)) return 'The bot cannot access the Test Server ID. Invite the bot to that server or clear the Test Server ID; global commands were still synchronized when possible.';
-  if (/used disallowed intents|4014/i.test(message)) return 'Discord rejected a gateway intent. CoreShift only requests the standard Guilds intent; verify the application Bot settings.';
+  if (/used disallowed intents|4014/i.test(message)) return 'Discord rejected a required gateway intent. Open Discord Developer Portal → Bot → Privileged Gateway Intents, enable Message Content Intent and Server Members Intent, then restart the bot.';
   return message;
 }
 function cleanError(error) {
   return String(error?.message || error || 'Discord bot operation failed.').replace(/[\r\n\t]+/g, ' ').trim().slice(0, 500);
 }
 
-module.exports = { registerDiscordBot, APPLICATION_ID, COMMANDS, COMMAND_NAMES, FORBIDDEN_COMMAND_NAMES, isDestructiveCommandName, ensureBotTables };
+module.exports = { registerDiscordBot, APPLICATION_ID, COMMANDS, COMMAND_NAMES, PREFIX_COMMANDS, FORBIDDEN_COMMAND_NAMES, isDestructiveCommandName, parsePrefixCommand, ensureBotTables };
