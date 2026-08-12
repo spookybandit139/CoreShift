@@ -1,7 +1,10 @@
 'use strict';
 
 const {
+  ActionRowBuilder,
   ActivityType,
+  ButtonBuilder,
+  ButtonStyle,
   Client,
   Colors,
   EmbedBuilder,
@@ -16,7 +19,8 @@ const {
 const crypto = require('crypto');
 
 const APPLICATION_ID = '1414846841371099156';
-const INVITE_PERMISSIONS = '84992';
+// Existing read/send/embed/history permissions plus Manage Roles for verification only.
+const INVITE_PERMISSIONS = '268520448';
 const IPC_CHANNELS = [
   'bot:status',
   'bot:config:save',
@@ -75,6 +79,11 @@ const COMMANDS = [
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addStringOption(option => option.setName('title').setDescription('Announcement title').setRequired(true).setMaxLength(100))
     .addStringOption(option => option.setName('message').setDescription('Announcement text').setRequired(true).setMaxLength(1800))),
+  guildOnly(new SlashCommandBuilder().setName('verification').setDescription('Post a privacy-respecting verification role gate (Manage Server required)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .addSubcommand(command => command.setName('setup').setDescription('Post a verification panel in this channel')
+      .addRoleOption(option => option.setName('role').setDescription('Role members receive after verifying').setRequired(true))
+      .addStringOption(option => option.setName('rules').setDescription('Optional short server-rules acknowledgement').setMaxLength(900)))),
   new SlashCommandBuilder().setName('fpsguide').setDescription('Get safe performance suggestions for a game')
     .addStringOption(option => option.setName('game').setDescription('Game name').setRequired(true).setMaxLength(80)),
   new SlashCommandBuilder().setName('clipchallenge').setDescription('Reveal this week\'s CoreShift editing challenge'),
@@ -379,6 +388,7 @@ function registerDiscordBot({ ipcMain, BrowserWindow, app, fs, path, safeStorage
 }
 
 async function handleInteraction(interaction, getDbConnection, inviteUrl, client) {
+  if (interaction.isButton()) return handleVerificationButton(interaction);
   if (!interaction.isChatInputCommand()) return;
   const command = interaction.commandName;
   if (isDestructiveCommandName(command)) return interaction.reply({ content: 'That legacy destructive command is permanently disabled in CoreShift.', ephemeral: true });
@@ -390,7 +400,7 @@ async function handleInteraction(interaction, getDbConnection, inviteUrl, client
   if (command === 'help') {
     return interaction.reply({ embeds: [baseEmbed('CoreShift command deck', [
       '**Core:** /help /ping /status /coreshift /invite',
-      '**Server:** /server /membercount /channelinfo /roleinfo /servericon /roles',
+      '**Server:** /server /membercount /channelinfo /roleinfo /servericon /roles /verification setup',
       '**Utilities:** /choose /random /roll /poll /announce /remind',
       '**Gaming:** /fpsguide /clipchallenge /clipshare /clips',
       '**Community:** /suggest /suggestions /mission',
@@ -426,6 +436,7 @@ async function handleInteraction(interaction, getDbConnection, inviteUrl, client
   if (command === 'roll') return handleRoll(interaction);
   if (command === 'poll') return handlePoll(interaction);
   if (command === 'announce') return handleAnnouncement(interaction);
+  if (command === 'verification') return handleVerificationSetup(interaction);
   if (command === 'fpsguide') return interaction.reply({ embeds: [fpsGuideEmbed(interaction.options.getString('game', true))] });
   if (command === 'clipchallenge') {
     const week = Math.floor(Date.now() / 604800000);
@@ -568,6 +579,60 @@ function handleAnnouncement(interaction) {
     embeds: [baseEmbed(title, message).setAuthor({ name: interaction.guild?.name || 'Server announcement' }).addFields({ name: 'Posted by', value: interaction.user.toString(), inline: true })],
     allowedMentions: { parse: [] }
   });
+}
+async function handleVerificationSetup(interaction) {
+  if (!interaction.guild) return interaction.reply({ content: 'Use this command inside the server where members will verify.', ephemeral: true });
+  if (!hasPermission(interaction, PermissionFlagsBits.ManageGuild)) return interaction.reply({ content: 'You need the Manage Server permission to set up verification.', ephemeral: true });
+  const role = interaction.options.getRole('role', true);
+  const botMember = await getBotMember(interaction.guild);
+  const setupError = verificationRoleError(role, interaction.guild, botMember);
+  if (setupError) return interaction.reply({ content: setupError, ephemeral: true });
+  const rules = interaction.options.getString('rules')?.trim() || 'I have read the server rules and agree to follow them.';
+  const button = new ButtonBuilder()
+    .setCustomId('coreshift:verify:' + role.id)
+    .setLabel('I agree & verify')
+    .setStyle(ButtonStyle.Success);
+  return interaction.reply({
+    embeds: [baseEmbed('Server verification', 'Read the server rules, then use the button below to receive access.')
+      .addFields(
+        { name: 'Rules acknowledgement', value: rules, inline: false },
+        { name: 'Privacy notice', value: 'This verification does **not** collect IP addresses, VPN status, location, device identifiers, or browser data. It only assigns the selected Discord role.', inline: false },
+        { name: 'Moderation notice', value: 'CoreShift cannot IP-ban members. Server moderators must use Discord’s built-in moderation and ban tools for enforcement.', inline: false }
+      )],
+    components: [new ActionRowBuilder().addComponents(button)],
+    allowedMentions: { parse: [] }
+  });
+}
+async function handleVerificationButton(interaction) {
+  if (!interaction.customId.startsWith('coreshift:verify:')) return;
+  await interaction.deferReply({ ephemeral: true });
+  const roleId = interaction.customId.slice('coreshift:verify:'.length);
+  if (!/^\d{16,22}$/.test(roleId)) return interaction.editReply({ content: 'This verification button is invalid. Ask a server manager to post a new one.' });
+  if (!interaction.guild || !interaction.member) return interaction.editReply({ content: 'Use this verification button inside its server.' });
+  if (interaction.message?.author?.id !== interaction.client.user?.id) return interaction.editReply({ content: 'For your safety, only use verification buttons posted by CoreShift.' });
+  const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
+  const botMember = await getBotMember(interaction.guild);
+  const roleError = verificationRoleError(role, interaction.guild, botMember);
+  if (roleError) return interaction.editReply({ content: roleError });
+  const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+  if (!member) return interaction.editReply({ content: 'I could not read your server membership. Please try again.' });
+  if (member.roles.cache.has(role.id)) return interaction.editReply({ content: 'You are already verified.' });
+  try {
+    await member.roles.add(role, 'CoreShift member self-verification');
+    return interaction.editReply({ content: 'Verified — you now have the ' + role.toString() + ' role. CoreShift did not collect your IP address, VPN status, location, or device information.', allowedMentions: { parse: [] } });
+  } catch (error) {
+    return interaction.editReply({ content: 'I could not assign that role. Make sure CoreShift has Manage Roles and its highest role is above the verification role.' });
+  }
+}
+async function getBotMember(guild) {
+  return guild.members.me || guild.members.fetchMe().catch(() => null);
+}
+function verificationRoleError(role, guild, botMember) {
+  if (!role || role.guild?.id !== guild.id) return 'That verification role no longer exists in this server.';
+  if (role.id === guild.id || role.managed) return 'Choose a normal server role for verification, not @everyone or an integration-managed role.';
+  if (!botMember?.permissions?.has(PermissionFlagsBits.ManageRoles)) return 'CoreShift needs the Manage Roles permission before it can verify members.';
+  if (!botMember.roles?.highest || role.position >= botMember.roles.highest.position) return 'Move the CoreShift role above the verification role in Server Settings → Roles, then try again.';
+  return '';
 }
 function hasPermission(interaction, permission) {
   return Boolean(interaction.memberPermissions?.has(permission));
