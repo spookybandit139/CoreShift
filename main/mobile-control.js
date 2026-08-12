@@ -4,6 +4,7 @@ const http = require('http');
 const crypto = require('crypto');
 const os = require('os');
 const net = require('net');
+const QRCode = require('qrcode');
 
 const PAIRING_LIFETIME_MS = 5 * 60 * 1000;
 const SESSION_LIFETIME_MS = 30 * 60 * 1000;
@@ -24,10 +25,13 @@ function registerMobileControl({ ipcMain, getPreferredAddress, getBot, startBot,
     const address = server?.address();
     const running = Boolean(server && address && advertisedAddress);
     const awaitingPairing = Boolean(pairing && Date.now() <= Date.parse(pairing.expiresAt));
+    const pairingUrl = running && awaitingPairing ? `http://${advertisedAddress}:${address.port}/pair?code=${pairing.linkCode}` : '';
+    const qrDataUrl = pairingUrl ? await QRCode.toDataURL(pairingUrl, { errorCorrectionLevel: 'M', margin: 1, width: 280, color: { dark: '#081018', light: '#00000000' } }) : '';
     return {
       success: true,
       running,
-      url: running && awaitingPairing ? `http://${advertisedAddress}:${address.port}/pair?code=${pairing.linkCode}` : '',
+      url: pairingUrl,
+      qrDataUrl,
       accessCode: running && awaitingPairing ? pairing.accessCode : '',
       expiresAt: awaitingPairing ? pairing.expiresAt : '',
       paired: isSessionValid(),

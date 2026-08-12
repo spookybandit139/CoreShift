@@ -40,6 +40,7 @@ async function smokeTestServer() {
     const started = await handlers.get('mobile:start')();
     assert.strictEqual(started.running, true);
     assert.match(started.url, /^http:\/\/192\.168\.1\.33:\d+\/pair\?code=[A-Za-z0-9_-]{20,}$/);
+    assert.match(started.qrDataUrl, /^data:image\/png;base64,/);
     assert.match(started.accessCode, /^\d{6}$/);
     const pairUrl = new URL(started.url); pairUrl.hostname = '127.0.0.1';
     const initialHome = await request(`http://127.0.0.1:${pairUrl.port}/`);
