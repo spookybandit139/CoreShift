@@ -22,6 +22,7 @@ async function run() {
   assert.equal(verification.default_member_permissions, String(1n << 5n), 'Verification setup must require Manage Server.');
   assert.equal(verification.options[0].name, 'setup', 'Verification must use an explicit setup action.');
   assert.equal(verification.options[0].options.find(option => option.name === 'role')?.required, true, 'Verification setup must require a role.');
+  assertRequiredBeforeOptional(COMMANDS);
   for (const forbidden of FORBIDDEN_COMMAND_NAMES) assert.ok(!COMMAND_NAMES.includes(forbidden), 'Unsafe command registered: ' + forbidden);
   for (const variation of ['clearserver', 'clear-server', 'clear_server', 'nuke', 'purge', 'wipe', 'ban-all', 'kick_all', 'eval', 'exec']) {
     assert.equal(isDestructiveCommandName(variation), true, 'Destructive variation was not blocked: ' + variation);
@@ -35,6 +36,18 @@ async function run() {
   }
 
   console.log('Discord bot command and schema tests passed.');
+}
+
+function assertRequiredBeforeOptional(commands) {
+  const walk = (options, label) => {
+    let foundOptional = false;
+    for (const option of options || []) {
+      if (option.type === 1 || option.type === 2) { walk(option.options, label + ' ' + option.name); continue; }
+      if (option.required) assert.equal(foundOptional, false, label + ' puts required option ' + option.name + ' after an optional option.');
+      else foundOptional = true;
+    }
+  };
+  for (const command of commands) walk(command.options, '/' + command.name);
 }
 
 run().catch(error => { console.error(error); process.exitCode = 1; });
