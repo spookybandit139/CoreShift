@@ -110,9 +110,9 @@ function showPanel(name) {
   $$('.nav-btn').forEach(node => node.classList.toggle('active', node.dataset.panel === name));
   setCoreModeActive(name);
   if (name === 'monitor' || name === 'overview') refreshStats();
-  if (name === 'chat') loadChat();
+  if (name === 'chat') { loadChat(); loadChatWebhook(); }
   if (name === 'clips') window.CoreShiftClipStudio?.refresh?.();
-  if (name === 'crosshairs') loadCrosshairs();
+  if (name === 'crosshairs') { loadCrosshairs(); loadCrosshairDisplays(); }
   if (name === 'pia') window.PIAChannel?.onShow?.().catch(error => toast(error.message));
   if (name === 'latency') window.LatencyLab?.onShow?.();
   if (name === 'ipprivacy') loadIpPrivacyPanel().catch(error => renderIpPrivacyStatus({ state: 'error', message: error.message }));
@@ -321,7 +321,26 @@ async function loadChat() {
   if (!result.success) { box.innerHTML = '<div class="chat-empty">' + escapeHtml(result.message) + '</div>'; return; }
   box.innerHTML = result.rows.map(row => '<article class="chat-message"><b>' + escapeHtml(row.author) + '</b><time>' + new Date(row.created_at).toLocaleString() + '</time><p>' + renderChatText(row.message) + '</p></article>').join('') || '<div class="chat-empty">No messages yet. Be the first to say hello.</div>'; box.scrollTop = box.scrollHeight;
 }
-$('#chatForm').addEventListener('submit', async event => { event.preventDefault(); const text = $('#chatText').value.trim(); if (!text) return; const result = await window.coreShiftAPI.sendChat({ channel: activeChannel, author: account?.username || $('#chatName').value.trim() || 'Player', text }); if (result.success) { $('#chatText').value = ''; loadChat(); } else toast(result.message); });
+function renderChatWebhook(config = {}) {
+  const owner = account?.username?.toLowerCase() === 'spookybandit139';
+  $('#chatRelayCard').hidden = !owner;
+  $('#chatRelayState').textContent = config.enabled && config.hasWebhook ? 'Discord relay on · ' + (config.label || 'selected Discord channel') : 'Private CoreShift room · Discord relay off';
+  if (!owner) return;
+  $('#chatWebhookEnabled').checked = Boolean(config.enabled && config.hasWebhook);
+  $('#chatWebhookLabel').value = config.label || '';
+  $('#chatWebhookUrl').value = '';
+  $('#chatWebhookUrl').placeholder = config.hasWebhook ? 'Saved securely — paste a new URL to replace it' : 'https://discord.com/api/webhooks/...';
+  $('#chatWebhookStatus').textContent = config.hasWebhook ? (config.enabled ? 'Relay is on. The saved webhook URL is encrypted and hidden.' : 'A webhook is saved securely, but mirroring is turned off.') : 'Paste a Discord channel webhook URL to connect the relay.';
+}
+async function loadChatWebhook() {
+  const result = await window.coreShiftAPI.getChatWebhook();
+  if (result.success) renderChatWebhook(result.config);
+  else if (account?.username?.toLowerCase() === 'spookybandit139') $('#chatWebhookStatus').textContent = result.message;
+}
+$('#chatForm').addEventListener('submit', async event => { event.preventDefault(); const text = $('#chatText').value.trim(); if (!text) return; const result = await window.coreShiftAPI.sendChat({ channel: activeChannel, text }); if (result.success) { $('#chatText').value = ''; loadChat(); if (result.message) toast(result.message); } else toast(result.message); });
+$('#saveChatWebhookBtn').addEventListener('click', async () => { const result = await window.coreShiftAPI.saveChatWebhook({ webhookUrl: $('#chatWebhookUrl').value.trim(), label: $('#chatWebhookLabel').value.trim(), enabled: $('#chatWebhookEnabled').checked }); if (result.success) { renderChatWebhook(result.config); toast(result.message); } else toast(result.message); });
+$('#testChatWebhookBtn').addEventListener('click', async () => { const result = await window.coreShiftAPI.testChatWebhook(); toast(result.message); });
+$('#clearChatWebhookBtn').addEventListener('click', async () => { if (!window.confirm('Remove the saved Discord webhook from this PC?')) return; const result = await window.coreShiftAPI.clearChatWebhook(); if (result.success) renderChatWebhook(result.config); toast(result.message); });
 
 function applyAdmin(admin) { $('#welcomeTitle').textContent = admin.title || 'Ready to play?'; $('#welcomeDescription').textContent = admin.description || 'Your system is tuned and standing by.'; $('#brandName').innerHTML = escapeHtml(admin.brand || 'CoreShift').replace(/SHIFT$/i, '<span>SHIFT</span>'); }
 $('#saveAdminBtn').addEventListener('click', async () => { const admin = { title: $('#adminTitle').value.trim(), description: $('#adminDescription').value.trim(), brand: $('#adminBrand').value.trim() }; settings = await window.coreShiftAPI.saveSettings({ admin }); applyAdmin(admin); toast('App content saved'); });
@@ -468,6 +487,8 @@ function renderIpPrivacyStatus(ipStatus = {}) {
   if (ipStatus.previousIp) $('#previousPublicIp').textContent = ipStatus.previousIp;
   $('#lastIpRotation').textContent = formatPrivacyDate(ipStatus.lastRotationAt, 'Never');
   $('#nextIpRotation').textContent = formatPrivacyDate(ipStatus.nextRunAt, 'Not scheduled');
+  const vpnState = $('#vpnConnectionStatus');
+  if (vpnState) { vpnState.textContent = 'VPN: ' + (ipStatus.vpnStatus || 'Not checked'); vpnState.classList.toggle('connected', String(ipStatus.vpnStatus || '').toLowerCase() === 'connected'); vpnState.classList.toggle('error', /unavailable|not found|error/i.test(String(ipStatus.vpnStatus || ''))); }
   const busy = ['checking', 'rotating'].includes(state);
   $('#checkPublicIpBtn').disabled = busy;
   $('#rotateIpNowBtn').disabled = busy;
@@ -579,7 +600,7 @@ $('#feedbackForm').addEventListener('submit', async event => {
   if (result.success) event.target.reset();
 });
 function readCrosshairForm() {
-  return { name: $('#crosshairName').value.trim(), shape: $('#crosshairShape').value, color: $('#crosshairColor').value, size: Number($('#crosshairSize').value), thickness: Number($('#crosshairThickness').value), gap: Number($('#crosshairGap').value) };
+  return { name: $('#crosshairName').value.trim(), shape: $('#crosshairShape').value, color: $('#crosshairColor').value, size: Number($('#crosshairSize').value), thickness: Number($('#crosshairThickness').value), gap: Number($('#crosshairGap').value), displayId: $('#crosshairDisplay').value };
 }
 function previewCrosshair(preset = readCrosshairForm()) {
   const node = $('#crosshairPreview');
@@ -598,11 +619,28 @@ async function loadCrosshairs() {
   $$('[data-load-crosshair]').forEach(button => button.addEventListener('click', () => { const preset = result.rows.find(row => String(row.id) === button.dataset.loadCrosshair); if (!preset) return; $('#crosshairName').value = preset.name; $('#crosshairShape').value = preset.shape; $('#crosshairColor').value = preset.color; $('#crosshairSize').value = preset.size; $('#crosshairThickness').value = preset.thickness; $('#crosshairGap').value = preset.gap_size; previewCrosshair({ ...preset, gap: preset.gap_size }); toast('Crosshair loaded'); }));
   $$('[data-delete-crosshair]').forEach(button => button.addEventListener('click', async () => { const deleted = await window.coreShiftAPI.deleteCrosshair(Number(button.dataset.deleteCrosshair)); if (deleted.success) loadCrosshairs(); else toast(deleted.message); }));
 }
-['#crosshairShape', '#crosshairColor', '#crosshairSize', '#crosshairThickness', '#crosshairGap'].forEach(selector => $(selector).addEventListener('input', previewCrosshair));
+async function loadCrosshairDisplays() {
+  const result = await window.coreShiftAPI.listCrosshairDisplays();
+  if (!result.success) return;
+  const select = $('#crosshairDisplay');
+  const selected = select.value || 'primary';
+  select.replaceChildren(...result.displays.map(display => new Option(display.label, display.id)));
+  select.value = [...select.options].some(option => option.value === selected) ? selected : 'primary';
+}
+const CROSSHAIR_PRESETS = {
+  precision: { name: 'Precision dot', shape: 'dot', color: '#66f7ff', size: 8, thickness: 5, gap: 0 },
+  tactical: { name: 'Tactical T', shape: 't', color: '#ffcb57', size: 30, thickness: 3, gap: 7 },
+  classic: { name: 'Classic plus', shape: 'plus', color: '#b7ff35', size: 25, thickness: 3, gap: 5 },
+  ring: { name: 'Ring', shape: 'ring', color: '#ffffff', size: 26, thickness: 3, gap: 0 }
+};
+function applyCrosshairPreset(preset) { $('#crosshairName').value = preset.name; $('#crosshairShape').value = preset.shape; $('#crosshairColor').value = preset.color; $('#crosshairSize').value = preset.size; $('#crosshairThickness').value = preset.thickness; $('#crosshairGap').value = preset.gap; previewCrosshair(); }
+$$('[data-crosshair-preset]').forEach(button => button.addEventListener('click', () => { applyCrosshairPreset(CROSSHAIR_PRESETS[button.dataset.crosshairPreset]); toast('Preset loaded. Test it on your desktop or save it.'); }));
+['#crosshairShape', '#crosshairColor', '#crosshairSize', '#crosshairThickness', '#crosshairGap', '#crosshairDisplay'].forEach(selector => $(selector).addEventListener('input', previewCrosshair));
 $('#crosshairToggle').addEventListener('change', async event => {
-  const enabled = await window.coreShiftAPI.toggleCrosshair(event.target.checked);
+  const enabled = await window.coreShiftAPI.toggleCrosshair({ enabled: event.target.checked, preset: readCrosshairForm() });
   if (enabled) window.coreShiftAPI.updateCrosshairOverlay(readCrosshairForm());
 });
+$('#testCrosshairBtn').addEventListener('click', async () => { await window.coreShiftAPI.toggleCrosshair({ enabled: true, preset: readCrosshairForm() }); window.coreShiftAPI.updateCrosshairOverlay(readCrosshairForm()); $('#crosshairToggle').checked = true; toast('Overlay test is on. It stays click-through; turn it off here when finished.'); });
 $('#importCrosshairBtn').addEventListener('click', async () => {
   const result = await window.coreShiftAPI.importCrosshair();
   if (result.canceled) return;
@@ -638,8 +676,7 @@ function renderAccount() {
     $('#authStatus').textContent = '';
     $('#authModal').hidden = false;
   });
-  $('#chatName').value = account?.username || '';
-  $('#chatName').readOnly = Boolean(account);
+  if ($('#chatName')) { $('#chatName').value = account?.username || ''; $('#chatName').readOnly = Boolean(account); }
   const owner = account?.username?.toLowerCase() === 'spookybandit139';
   const mysqlCard = $('#mysqlForm')?.closest('article');
   if (mysqlCard) mysqlCard.hidden = Boolean(account && !owner);

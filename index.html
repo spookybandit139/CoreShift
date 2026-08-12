@@ -481,7 +481,7 @@ LIMIT 5;</textarea>
     <!-- CHAT PANEL -->
     <section id="panel-chat" class="panel">
       <div class="heading">
-        <div><p>COMMUNITY</p><h1>Community Chat</h1><small>Messages are stored in your connected MySQL database.</small></div>
+        <div><p>COMMUNITY RELAY</p><h1>Squad Chat</h1><small>Keep your CoreShift room, then optionally mirror each message to one Discord channel you choose.</small></div>
         <div id="chatConnection" class="connection"><i></i> Database required</div>
       </div>
 
@@ -493,26 +493,37 @@ LIMIT 5;</textarea>
           <button data-channel="game-help"># game-help</button>
           <button data-channel="star-wars"># star-wars</button>
           <button data-channel="tips"># tips</button>
-          <small>Messages use the MySQL connection configured in Settings.</small>
+          <small>Chat is saved in MySQL. The Discord relay is optional and uses a webhook you control.</small>
         </aside>
 
         <article>
-          <header><b id="channelTitle"># general</b><small>Talk with your team</small></header>
+          <header><b id="channelTitle"># general</b><small id="chatRelayState">Private CoreShift room · Discord relay off</small></header>
           <div id="chatMessages" class="messages"><div class="chat-empty">Connect MySQL in Settings to load saved messages.</div></div>
           <form id="chatForm">
-            <input id="chatName" maxlength="40" placeholder="Display name">
             <input id="chatText" maxlength="1000" placeholder="Message #general" required>
             <button>Send</button>
           </form>
         </article>
       </div>
+      <article class="settings chat-relay-card" id="chatRelayCard">
+        <div><small>DISCORD WEBHOOK RELAY</small><h3>Mirror this chat to your server</h3></div>
+        <p>Create a webhook inside the Discord channel you want, paste its URL below, and every new CoreShift chat message will be copied there. The URL is encrypted on this PC and never shown after saving.</p>
+        <div class="chat-relay-controls">
+          <label>Discord webhook URL<input id="chatWebhookUrl" type="password" autocomplete="off" placeholder="https://discord.com/api/webhooks/..." spellcheck="false"></label>
+          <label>Channel label <input id="chatWebhookLabel" maxlength="60" placeholder="e.g. #coreshift-chat"></label>
+          <label class="chat-relay-switch"><span><b>Mirror new messages</b><small>Names and messages will be sent to the configured Discord channel.</small></span><input id="chatWebhookEnabled" type="checkbox"><i></i></label>
+        </div>
+        <div class="chat-relay-actions"><button id="saveChatWebhookBtn" class="outline" type="button">Save relay</button><button id="testChatWebhookBtn" class="primary" type="button">Send test</button><button id="clearChatWebhookBtn" class="text-button" type="button">Remove relay</button></div>
+        <small id="chatWebhookStatus">Only the app owner can configure the Discord relay.</small>
+      </article>
     </section>
 
     <section id="panel-crosshairs" class="panel">
-      <div class="heading"><div><p>AIM LAB</p><h1>Crosshair Lab</h1><small>Create your favorite look, save it to your profile, and load it whenever you come back.</small></div></div>
+      <div class="heading"><div><p>AIM LAB</p><h1>Crosshair Lab</h1><small>Build a visible, click-through desktop overlay with presets, display targeting, and a live test preview.</small></div></div>
+      <div class="crosshair-preset-deck" aria-label="Quick crosshair presets"><button type="button" data-crosshair-preset="precision">Precision dot</button><button type="button" data-crosshair-preset="tactical">Tactical T</button><button type="button" data-crosshair-preset="classic">Classic plus</button><button type="button" data-crosshair-preset="ring">Ring</button></div>
       <div class="crosshair-layout">
-        <article class="crosshair-stage"><div id="crosshairPreview" class="crosshair-preview"><i></i><b></b><em></em><strong></strong></div><small>LIVE PREVIEW</small><label class="crosshair-toggle"><input id="crosshairToggle" type="checkbox"><i></i><span>Enable in-game overlay</span></label></article>
-        <article class="settings crosshair-editor"><h3>Build a crosshair</h3><form id="crosshairForm"><label>Name<input id="crosshairName" maxlength="80" placeholder="My ranked crosshair" required></label><div class="crosshair-controls"><label>Shape<select id="crosshairShape"><option value="plus">Plus</option><option value="dot">Dot</option><option value="cross">Cross</option></select></label><label>Color<input id="crosshairColor" type="color" value="#b7ff35"></label><label>Size<input id="crosshairSize" type="range" min="8" max="56" value="28"></label><label>Thickness<input id="crosshairThickness" type="range" min="1" max="8" value="3"></label><label>Gap<input id="crosshairGap" type="range" min="0" max="20" value="6"></label></div><div class="crosshair-actions"><button type="button" id="importCrosshairBtn" class="outline">Import .json preset</button><button class="primary">Save to my profile</button></div></form></article>
+        <article class="crosshair-stage"><div id="crosshairPreview" class="crosshair-preview"><i></i><b></b><em></em><strong></strong></div><small>LIVE PREVIEW · USE THE TEST BUTTON TO CHECK IT ON YOUR DESKTOP</small><div class="crosshair-stage-actions"><button id="testCrosshairBtn" type="button" class="outline">Test overlay</button><label class="crosshair-toggle"><input id="crosshairToggle" type="checkbox"><i></i><span>Keep overlay on</span></label></div></article>
+        <article class="settings crosshair-editor"><h3>Build a crosshair</h3><form id="crosshairForm"><label>Name<input id="crosshairName" maxlength="80" placeholder="My ranked crosshair" required></label><div class="crosshair-controls"><label>Style<select id="crosshairShape"><option value="plus">Classic plus</option><option value="dot">Precision dot</option><option value="t">Tactical T</option><option value="ring">Ring</option></select></label><label>Display<select id="crosshairDisplay"><option value="primary">Primary display</option></select></label><label>Color<input id="crosshairColor" type="color" value="#b7ff35"></label><label>Size<input id="crosshairSize" type="range" min="6" max="70" value="28"></label><label>Thickness<input id="crosshairThickness" type="range" min="1" max="10" value="3"></label><label>Gap<input id="crosshairGap" type="range" min="0" max="28" value="6"></label></div><div class="crosshair-actions"><button type="button" id="importCrosshairBtn" class="outline">Import .json preset</button><button class="primary">Save to my profile</button></div></form></article>
         <article class="settings crosshair-library"><h3>My saved crosshairs</h3><div id="crosshairList"><small>Sign in to load your presets.</small></div></article>
       </div>
     </section>
@@ -555,18 +566,18 @@ LIMIT 5;</textarea>
 
     <section id="panel-ipprivacy" class="panel ip-privacy-panel">
       <div class="heading">
-        <div><p>NETWORK PRIVACY</p><h1>Daily IP Privacy</h1><small>Reconnect a saved Windows VPN profile every day and verify the public IP before and after.</small></div>
+        <div><p>NETWORK PRIVACY</p><h1>Daily VPN Check</h1><small>Reconnect a saved Windows VPN profile each day, verify its connection state, and compare public IPs.</small></div>
         <span id="ipPrivacyState" data-state="idle">IDLE</span>
       </div>
       <div class="ip-privacy-hero">
         <article class="ip-address-card">
-          <small>CURRENT PUBLIC IP</small><strong id="currentPublicIp">Not checked</strong><button id="checkPublicIpBtn" class="outline" type="button">Check public IP</button>
+          <small>CURRENT PUBLIC IP</small><strong id="currentPublicIp">Not checked</strong><button id="checkPublicIpBtn" class="outline" type="button">Check public IP</button><span id="vpnConnectionStatus" class="vpn-connection-status">VPN profile not checked</span>
           <div class="ip-route-line"><span></span><i></i><span></span></div>
           <div class="ip-history"><span><small>PREVIOUS IP</small><b id="previousPublicIp">Not recorded</b></span><span><small>LAST ROTATION</small><b id="lastIpRotation">Never</b></span><span><small>NEXT RUN</small><b id="nextIpRotation">Not scheduled</b></span></div>
         </article>
         <article class="settings ip-scheduler-card">
           <h3>VPN rotation scheduler</h3>
-          <p>CoreShift uses a Windows VPN profile and credentials saved by Windows. It never stores your VPN password.</p>
+          <p>CoreShift uses a Windows VPN profile and credentials saved by Windows. It never stores your VPN password or claims a new IP until it checks one.</p>
           <label class="ip-field">Windows VPN profile<select id="ipVpnProfile"><option value="">Detecting profiles...</option></select></label>
           <div class="ip-profile-actions"><button id="refreshVpnProfilesBtn" class="outline" type="button">Refresh profiles</button><button id="openVpnSettingsBtn" class="outline" type="button">Open Windows VPN setup</button></div>
           <label class="ip-field">Daily reconnect time<input id="ipRotationTime" type="time" value="04:00"></label>
