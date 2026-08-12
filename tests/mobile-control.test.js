@@ -33,13 +33,14 @@ async function smokeTestServer() {
     getBot: async () => ({ success: true, status: { state: 'stopped', connected: false, guildCount: 2, commandCount: 28, message: 'CoreShift bot is stopped.' } }),
     startBot: async () => { starts += 1; return { success: true, message: 'Bot started.' }; },
     stopBot: async () => ({ success: true, message: 'Bot stopped.' }),
-    syncBot: async () => ({ success: true, message: 'Bot commands synced.' })
+    syncBot: async () => ({ success: true, message: 'Bot commands synced.' }),
+    postBotMessage: async payload => ({ success: true, message: 'Posted ' + payload.type + '.' })
   });
   try {
     const started = await handlers.get('mobile:start')();
     assert.strictEqual(started.running, true);
     assert.match(started.url, /^http:\/\/192\.168\.1\.33:\d+\/pair\?code=[A-Za-z0-9_-]{20,}$/);
-    assert.match(started.accessCode, /^\d{4}$/);
+    assert.match(started.accessCode, /^\d{6}$/);
     const pairUrl = new URL(started.url); pairUrl.hostname = '127.0.0.1';
     const initialHome = await request(`http://127.0.0.1:${pairUrl.port}/`);
     assert.strictEqual(initialHome.status, 401);
@@ -47,7 +48,7 @@ async function smokeTestServer() {
     assert.strictEqual(pairingPage.status, 200);
     assert.match(pairingPage.text, /Enter security code/);
     const pendingCookie = pairingPage.headers['set-cookie'][0].split(';')[0];
-    const wrongPin = await request(`http://127.0.0.1:${pairUrl.port}/pair/verify`, { method: 'POST', headers: { Cookie: pendingCookie, 'Content-Type': 'application/json' } }, JSON.stringify({ code: '0000' }));
+    const wrongPin = await request(`http://127.0.0.1:${pairUrl.port}/pair/verify`, { method: 'POST', headers: { Cookie: pendingCookie, 'Content-Type': 'application/json' } }, JSON.stringify({ code: '000000' }));
     assert.strictEqual(wrongPin.status, 403);
     const verified = await request(`http://127.0.0.1:${pairUrl.port}/pair/verify`, { method: 'POST', headers: { Cookie: pendingCookie, 'Content-Type': 'application/json' } }, JSON.stringify({ code: started.accessCode }));
     assert.strictEqual(JSON.parse(verified.text).success, true);
@@ -65,9 +66,11 @@ async function smokeTestServer() {
     const action = await request(`http://127.0.0.1:${pairUrl.port}/api/action`, { method: 'POST', headers: { Cookie: sessionCookie, Origin: `http://127.0.0.1:${pairUrl.port}`, 'Content-Type': 'application/json', 'X-CS-Mobile': csrf } }, JSON.stringify({ action: 'bot-start' }));
     assert.strictEqual(JSON.parse(action.text).success, true);
     assert.strictEqual(starts, 1);
+    const post = await request(`http://127.0.0.1:${pairUrl.port}/api/action`, { method: 'POST', headers: { Cookie: sessionCookie, Origin: `http://127.0.0.1:${pairUrl.port}`, 'Content-Type': 'application/json', 'X-CS-Mobile': csrf } }, JSON.stringify({ action: 'bot-post', type: 'rules', guildId: '1', channelId: '2' }));
+    assert.strictEqual(JSON.parse(post.text).success, true);
     const refreshed = await handlers.get('mobile:pairing:reset')();
     assert.strictEqual(refreshed.paired, false);
-    assert.match(refreshed.accessCode, /^\d{4}$/);
+    assert.match(refreshed.accessCode, /^\d{6}$/);
     const expiredSession = await request(`http://127.0.0.1:${pairUrl.port}/api/status`, { headers: { Cookie: sessionCookie } });
     assert.strictEqual(expiredSession.status, 401);
   } finally { await controller.stop(); }
