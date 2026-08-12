@@ -13,6 +13,7 @@ const {
   Routes,
   SlashCommandBuilder
 } = require('discord.js');
+const crypto = require('crypto');
 
 const APPLICATION_ID = '1414846841371099156';
 const INVITE_PERMISSIONS = '84992';
@@ -44,6 +45,11 @@ const COMMANDS = [
   new SlashCommandBuilder().setName('coreshift').setDescription('Show CoreShift download and feature information'),
   new SlashCommandBuilder().setName('invite').setDescription('Get the official CoreShift bot invite'),
   guildOnly(new SlashCommandBuilder().setName('server').setDescription('Show a quick server operations snapshot')),
+  guildOnly(new SlashCommandBuilder().setName('membercount').setDescription('Show the current server member count')),
+  guildOnly(new SlashCommandBuilder().setName('channelinfo').setDescription('Show details about this channel')),
+  guildOnly(new SlashCommandBuilder().setName('roleinfo').setDescription('Show details about a server role')
+    .addRoleOption(option => option.setName('role').setDescription('Role to inspect').setRequired(true))),
+  guildOnly(new SlashCommandBuilder().setName('servericon').setDescription('Show the server icon in full size')),
   guildOnly(new SlashCommandBuilder().setName('roles').setDescription('List the server roles and member counts')),
   new SlashCommandBuilder().setName('avatar').setDescription('Show a Discord user avatar')
     .addUserOption(option => option.setName('user').setDescription('User to view')),
@@ -54,6 +60,21 @@ const COMMANDS = [
   new SlashCommandBuilder().setName('random').setDescription('Generate a random whole number')
     .addIntegerOption(option => option.setName('minimum').setDescription('Lowest possible value').setRequired(true).setMinValue(-1000000).setMaxValue(1000000))
     .addIntegerOption(option => option.setName('maximum').setDescription('Highest possible value').setRequired(true).setMinValue(-1000000).setMaxValue(1000000)),
+  new SlashCommandBuilder().setName('roll').setDescription('Roll dice using notation such as 2d20+3')
+    .addStringOption(option => option.setName('dice').setDescription('Between 1d2 and 20d1000, optionally with + or - modifier').setRequired(true).setMaxLength(14)),
+  guildOnly(new SlashCommandBuilder().setName('poll').setDescription('Create a native Discord poll (Manage Messages required)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .addStringOption(option => option.setName('question').setDescription('Question to ask').setRequired(true).setMaxLength(300))
+    .addStringOption(option => option.setName('option1').setDescription('First answer').setRequired(true).setMaxLength(55))
+    .addStringOption(option => option.setName('option2').setDescription('Second answer').setRequired(true).setMaxLength(55))
+    .addStringOption(option => option.setName('option3').setDescription('Optional third answer').setMaxLength(55))
+    .addStringOption(option => option.setName('option4').setDescription('Optional fourth answer').setMaxLength(55))
+    .addIntegerOption(option => option.setName('hours').setDescription('How long the poll stays open').setRequired(true).setMinValue(1).setMaxValue(168))
+    .addBooleanOption(option => option.setName('multiple').setDescription('Let members select more than one answer'))),
+  guildOnly(new SlashCommandBuilder().setName('announce').setDescription('Post a styled announcement in this channel (Manage Server required)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .addStringOption(option => option.setName('title').setDescription('Announcement title').setRequired(true).setMaxLength(100))
+    .addStringOption(option => option.setName('message').setDescription('Announcement text').setRequired(true).setMaxLength(1800))),
   new SlashCommandBuilder().setName('fpsguide').setDescription('Get safe performance suggestions for a game')
     .addStringOption(option => option.setName('game').setDescription('Game name').setRequired(true).setMaxLength(80)),
   new SlashCommandBuilder().setName('clipchallenge').setDescription('Reveal this week\'s CoreShift editing challenge'),
@@ -369,8 +390,8 @@ async function handleInteraction(interaction, getDbConnection, inviteUrl, client
   if (command === 'help') {
     return interaction.reply({ embeds: [baseEmbed('CoreShift command deck', [
       '**Core:** /help /ping /status /coreshift /invite',
-      '**Server:** /server /roles /avatar /userinfo',
-      '**Utilities:** /choose /random /remind',
+      '**Server:** /server /membercount /channelinfo /roleinfo /servericon /roles',
+      '**Utilities:** /choose /random /roll /poll /announce /remind',
       '**Gaming:** /fpsguide /clipchallenge /clipshare /clips',
       '**Community:** /suggest /suggestions /mission',
       '**Performance:** /benchmark submit /benchmark leaderboard'
@@ -393,11 +414,18 @@ async function handleInteraction(interaction, getDbConnection, inviteUrl, client
   }
   if (command === 'invite') return interaction.reply({ embeds: [baseEmbed('Invite CoreShift Bot', '[Add CoreShift to another server](' + inviteUrl() + ')')], ephemeral: true });
   if (command === 'server') return handleServer(interaction);
+  if (command === 'membercount') return handleMemberCount(interaction);
+  if (command === 'channelinfo') return handleChannelInfo(interaction);
+  if (command === 'roleinfo') return handleRoleInfo(interaction);
+  if (command === 'servericon') return handleServerIcon(interaction);
   if (command === 'roles') return handleRoles(interaction);
   if (command === 'avatar') return handleAvatar(interaction);
   if (command === 'userinfo') return handleUserInfo(interaction);
   if (command === 'choose') return handleChoose(interaction);
   if (command === 'random') return handleRandom(interaction);
+  if (command === 'roll') return handleRoll(interaction);
+  if (command === 'poll') return handlePoll(interaction);
+  if (command === 'announce') return handleAnnouncement(interaction);
   if (command === 'fpsguide') return interaction.reply({ embeds: [fpsGuideEmbed(interaction.options.getString('game', true))] });
   if (command === 'clipchallenge') {
     const week = Math.floor(Date.now() / 604800000);
@@ -425,6 +453,48 @@ function handleServer(interaction) {
   const icon = interaction.guild.iconURL({ size: 256 });
   if (icon) embed.setThumbnail(icon);
   return interaction.reply({ embeds: [embed] });
+}
+function handleMemberCount(interaction) {
+  if (!interaction.guild) return interaction.reply({ content: 'Use this command inside a server.', ephemeral: true });
+  const cachedMembers = [...interaction.guild.members.cache.values()];
+  const cachedBots = cachedMembers.filter(member => member.user?.bot).length;
+  return interaction.reply({ embeds: [baseEmbed(interaction.guild.name + ' member count', 'A live count from Discord. Cached bot counts can be lower until Discord loads every member.')
+    .addFields(
+      { name: 'Total members', value: String(interaction.guild.memberCount), inline: true },
+      { name: 'Cached bots', value: String(cachedBots), inline: true },
+      { name: 'Cached humans', value: String(Math.max(0, cachedMembers.length - cachedBots)), inline: true }
+    )] });
+}
+function handleChannelInfo(interaction) {
+  const channel = interaction.channel;
+  if (!interaction.guild || !channel) return interaction.reply({ content: 'Use this command inside a server channel.', ephemeral: true });
+  const topic = typeof channel.topic === 'string' && channel.topic.trim() ? channel.topic.trim() : 'No topic set.';
+  const parent = channel.parent?.name ? '#' + channel.parent.name : 'No category';
+  const created = channel.createdTimestamp ? '<t:' + Math.floor(channel.createdTimestamp / 1000) + ':R>' : 'Unavailable';
+  return interaction.reply({ embeds: [baseEmbed('Channel: #' + channel.name, topic)
+    .addFields(
+      { name: 'Channel ID', value: channel.id, inline: true },
+      { name: 'Category', value: parent, inline: true },
+      { name: 'Created', value: created, inline: true }
+    )], allowedMentions: { parse: [] } });
+}
+function handleRoleInfo(interaction) {
+  const role = interaction.options.getRole('role', true);
+  const permissions = describeRolePermissions(role);
+  return interaction.reply({ embeds: [baseEmbed('Role: ' + role.name, 'Details for this server role.')
+    .addFields(
+      { name: 'Role ID', value: role.id, inline: true },
+      { name: 'Cached members', value: String(role.members.size), inline: true },
+      { name: 'Color', value: role.hexColor || 'Default', inline: true },
+      { name: 'Permissions', value: permissions, inline: false },
+      { name: 'Created', value: '<t:' + Math.floor(role.createdTimestamp / 1000) + ':R>', inline: true }
+    )], allowedMentions: { parse: [] } });
+}
+function handleServerIcon(interaction) {
+  if (!interaction.guild) return interaction.reply({ content: 'Use this command inside a server.', ephemeral: true });
+  const icon = interaction.guild.iconURL({ size: 1024, extension: 'png' });
+  if (!icon) return interaction.reply({ content: 'This server does not have a custom icon.', ephemeral: true });
+  return interaction.reply({ embeds: [baseEmbed(interaction.guild.name + ' icon', '[Open full-size server icon](' + icon + ')').setImage(icon)] });
 }
 function handleRoles(interaction) {
   const roles = [...interaction.guild.roles.cache.values()]
@@ -462,8 +532,58 @@ function handleRandom(interaction) {
   const minimum = interaction.options.getInteger('minimum', true);
   const maximum = interaction.options.getInteger('maximum', true);
   if (minimum > maximum) return interaction.reply({ content: 'Minimum must be less than or equal to maximum.', ephemeral: true });
-  const result = Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
+  const result = crypto.randomInt(minimum, maximum + 1);
   return interaction.reply({ embeds: [baseEmbed('Random number', '**' + result + '**\nRange: ' + minimum + ' to ' + maximum)] });
+}
+function handleRoll(interaction) {
+  const raw = interaction.options.getString('dice', true).replace(/\s+/g, '').toLowerCase();
+  const match = raw.match(/^(\d{1,2})d(\d{1,4})(?:([+-])(\d{1,4}))?$/);
+  if (!match) return interaction.reply({ content: 'Use dice notation like `1d20`, `2d6+3`, or `4d8-1`.', ephemeral: true });
+  const count = Number(match[1]);
+  const sides = Number(match[2]);
+  const modifier = match[3] ? (match[3] === '-' ? -1 : 1) * Number(match[4]) : 0;
+  if (count < 1 || count > 20 || sides < 2 || sides > 1000 || Math.abs(modifier) > 1000) return interaction.reply({ content: 'Use between 1d2 and 20d1000, with a modifier no larger than 1000.', ephemeral: true });
+  const rolls = Array.from({ length: count }, () => crypto.randomInt(1, sides + 1));
+  const total = rolls.reduce((sum, value) => sum + value, 0) + modifier;
+  const modifierText = modifier ? (modifier > 0 ? ' + ' : ' - ') + Math.abs(modifier) : '';
+  return interaction.reply({ embeds: [baseEmbed('Dice roll: ' + raw, '**' + total + '** total').addFields({ name: 'Rolls', value: rolls.join(', '), inline: false }, { name: 'Formula', value: count + 'd' + sides + modifierText, inline: true })] });
+}
+async function handlePoll(interaction) {
+  if (!hasPermission(interaction, PermissionFlagsBits.ManageMessages)) return interaction.reply({ content: 'You need the Manage Messages permission to create a poll.', ephemeral: true });
+  const options = ['option1', 'option2', 'option3', 'option4'].map(name => interaction.options.getString(name)).filter(Boolean).map(value => value.trim());
+  if (new Set(options.map(value => value.toLowerCase())).size !== options.length) return interaction.reply({ content: 'Each poll option needs to be different.', ephemeral: true });
+  const question = interaction.options.getString('question', true).trim();
+  const hours = interaction.options.getInteger('hours', true);
+  const multiple = Boolean(interaction.options.getBoolean('multiple'));
+  return interaction.reply({
+    poll: { question: { text: question }, answers: options.map(text => ({ text })), duration: hours, allowMultiselect: multiple },
+    allowedMentions: { parse: [] }
+  });
+}
+function handleAnnouncement(interaction) {
+  if (!hasPermission(interaction, PermissionFlagsBits.ManageGuild)) return interaction.reply({ content: 'You need the Manage Server permission to post an announcement.', ephemeral: true });
+  const title = interaction.options.getString('title', true).trim();
+  const message = interaction.options.getString('message', true).trim();
+  return interaction.reply({
+    embeds: [baseEmbed(title, message).setAuthor({ name: interaction.guild?.name || 'Server announcement' }).addFields({ name: 'Posted by', value: interaction.user.toString(), inline: true })],
+    allowedMentions: { parse: [] }
+  });
+}
+function hasPermission(interaction, permission) {
+  return Boolean(interaction.memberPermissions?.has(permission));
+}
+function describeRolePermissions(role) {
+  if (role.permissions.has(PermissionFlagsBits.Administrator)) return 'Administrator';
+  const labels = [
+    [PermissionFlagsBits.ManageGuild, 'Manage Server'],
+    [PermissionFlagsBits.ManageChannels, 'Manage Channels'],
+    [PermissionFlagsBits.ManageMessages, 'Manage Messages'],
+    [PermissionFlagsBits.ModerateMembers, 'Timeout Members'],
+    [PermissionFlagsBits.KickMembers, 'Kick Members'],
+    [PermissionFlagsBits.BanMembers, 'Ban Members'],
+    [PermissionFlagsBits.MentionEveryone, 'Mention Everyone']
+  ].filter(([permission]) => role.permissions.has(permission)).map(([, label]) => label);
+  return labels.length ? labels.join(', ') : 'No elevated server permissions';
 }
 
 async function handleReminder(interaction, getDbConnection) {
