@@ -21,7 +21,8 @@ function registerIpPrivacy({ ipcMain, BrowserWindow, shell, execFile, getSetting
     publicIp: '',
     previousIp: '',
     lastRotationAt: '',
-    nextRunAt: ''
+    nextRunAt: '',
+    vpnStatus: 'Not checked'
   };
 
   function requireOwner() {
@@ -84,11 +85,11 @@ function registerIpPrivacy({ ipcMain, BrowserWindow, shell, execFile, getSetting
     })).filter(profile => profile.name);
   }
 
-  function requestPublicIp() {
+  function requestPublicIpFrom(endpoint) {
     return new Promise((resolve, reject) => {
       const request = https.get({
-        hostname: 'api.ipify.org',
-        path: '/?format=json',
+        hostname: endpoint.hostname,
+        path: endpoint.path,
         headers: { 'User-Agent': 'CoreShift-IP-Privacy/1.0', Accept: 'application/json' },
         timeout: 8000
       }, response => {
@@ -98,7 +99,8 @@ function registerIpPrivacy({ ipcMain, BrowserWindow, shell, execFile, getSetting
         response.on('end', () => {
           try {
             if (response.statusCode !== 200) throw new Error('Public IP service returned HTTP ' + response.statusCode + '.');
-            const ip = String(JSON.parse(body).ip || '').trim();
+            const parsed = endpoint.json ? JSON.parse(body).ip : body;
+            const ip = String(parsed || '').trim();
             if (!/^[0-9a-f:.]{3,64}$/i.test(ip)) throw new Error('Public IP service returned an invalid address.');
             resolve(ip);
           } catch (error) { reject(error); }
@@ -107,6 +109,20 @@ function registerIpPrivacy({ ipcMain, BrowserWindow, shell, execFile, getSetting
       request.on('timeout', () => request.destroy(new Error('Public IP check timed out.')));
       request.on('error', reject);
     });
+  }
+
+  async function requestPublicIp() {
+    const services = [
+      { hostname: 'api.ipify.org', path: '/?format=json', json: true },
+      { hostname: 'api64.ipify.org', path: '/?format=json', json: true },
+      { hostname: 'checkip.amazonaws.com', path: '/', json: false }
+    ];
+    let lastError;
+    for (const service of services) {
+      try { return await requestPublicIpFrom(service); }
+      catch (error) { lastError = error; }
+    }
+    throw lastError || new Error('Public IP services are unavailable.');
   }
 
   async function saveConfig(payload) {
@@ -121,7 +137,8 @@ function registerIpPrivacy({ ipcMain, BrowserWindow, shell, execFile, getSetting
     const previous = getConfig();
     const config = { ...previous, enabled: Boolean(payload?.enabled), profileName, dailyTime };
     saveSettings({ ...current, ipPrivacy: config });
-    return { success: true, config, status: updateStatus({ message: config.enabled ? 'Daily VPN rotation is armed.' : 'Daily VPN rotation is disabled.' }) };
+    const selected = profiles.find(profile => profile.name === profileName);
+    return { success: true, config, status: updateStatus({ vpnStatus: selected ? selected.connectionStatus : 'No profile selected', message: config.enabled ? 'Daily VPN check is armed.' : 'Daily VPN check is disabled.' }) };
   }
 
   async function rotateConnection(reason = 'manual') {
@@ -145,6 +162,8 @@ function registerIpPrivacy({ ipcMain, BrowserWindow, shell, execFile, getSetting
       }
       await runFile('rasdial.exe', [profile.name], 30000);
       await delay(3500);
+      const refreshedProfiles = await listProfiles();
+      const refreshedProfile = refreshedProfiles.find(item => item.name === config.profileName);
       const afterIp = await requestPublicIp();
       const changed = Boolean(beforeIp && afterIp && beforeIp !== afterIp);
       const message = changed
@@ -153,7 +172,7 @@ function registerIpPrivacy({ ipcMain, BrowserWindow, shell, execFile, getSetting
       const current = getSettings();
       const nextConfig = { ...getConfig(), lastAttemptDate: attemptDate, lastRotationAt: attemptedAt.toISOString(), previousIp: beforeIp, publicIp: afterIp, lastResult: message };
       saveSettings({ ...current, ipPrivacy: nextConfig });
-      return { success: true, changed, beforeIp, afterIp, message, status: updateStatus({ state: changed ? 'changed' : 'same', message, previousIp: beforeIp, publicIp: afterIp, lastRotationAt: attemptedAt.toISOString() }) };
+      return { success: true, changed, beforeIp, afterIp, message, status: updateStatus({ state: changed ? 'changed' : 'same', message, previousIp: beforeIp, publicIp: afterIp, lastRotationAt: attemptedAt.toISOString(), vpnStatus: refreshedProfile?.connectionStatus || 'Connection state unavailable' }) };
     } catch (error) {
       const message = cleanError(error) + ' Open Windows Settings > Network & internet > VPN and connect once with Remember credentials enabled.';
       const current = getSettings();
@@ -177,7 +196,8 @@ function registerIpPrivacy({ ipcMain, BrowserWindow, shell, execFile, getSetting
     try {
       requireOwner();
       const config = getConfig();
-      return { success: true, config, status: updateStatus({ publicIp: config.publicIp, previousIp: config.previousIp, lastRotationAt: config.lastRotationAt, message: config.lastResult || status.message }) };
+      const profile = config.profileName ? (await listProfiles()).find(item => item.name === config.profileName) : null;
+      return { success: true, config, status: updateStatus({ publicIp: config.publicIp, previousIp: config.previousIp, lastRotationAt: config.lastRotationAt, vpnStatus: profile?.connectionStatus || (config.profileName ? 'Profile unavailable' : 'No profile selected'), message: config.lastResult || status.message }) };
     } catch (error) { return { success: false, message: cleanError(error) }; }
   });
   ipcMain.handle('ipPrivacy:profiles', async () => {

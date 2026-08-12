@@ -22,6 +22,7 @@ const { registerMobileControl } = require('./main/mobile-control');
 let mainWindow;
 let overlayWindow;
 let crosshairWindow;
+let activeCrosshairPreset = { shape: 'plus', color: '#b7ff35', size: 28, thickness: 3, gap: 6, displayId: 'primary' };
 let dbConnection;
 let activeAccount;
 let discordBotController;
@@ -57,6 +58,46 @@ function getSettings() {
 function saveSettings(settings) {
   fs.writeFileSync(settingsPath(), JSON.stringify(settings, null, 2), 'utf8');
   return settings;
+}
+
+function chatWebhookConfig() {
+  const saved = getSettings().chatWebhook || {};
+  return { enabled: Boolean(saved.enabled), encryptedUrl: String(saved.encryptedUrl || ''), label: String(saved.label || '').slice(0, 60) };
+}
+function publicChatWebhookConfig() {
+  const config = chatWebhookConfig();
+  return { enabled: config.enabled, hasWebhook: Boolean(config.encryptedUrl), label: config.label };
+}
+function requireOwner() {
+  if (!isOwner()) throw new Error('Only Spookybandit139 can configure the Discord chat relay.');
+}
+function validDiscordWebhookUrl(value) {
+  try {
+    const url = new URL(String(value || '').trim());
+    const knownHost = url.hostname === 'discord.com' || url.hostname === 'discordapp.com';
+    if (!knownHost || url.protocol !== 'https:' || !/^\/api\/webhooks\/\d{16,22}\/[A-Za-z0-9_-]{20,}/.test(url.pathname)) return '';
+    return url.toString();
+  } catch { return ''; }
+}
+function encryptWebhookUrl(value) {
+  if (!safeStorage.isEncryptionAvailable()) throw new Error('Windows credential encryption is not available on this PC.');
+  return safeStorage.encryptString(value).toString('base64');
+}
+function decryptWebhookUrl(config = chatWebhookConfig()) {
+  if (!config.encryptedUrl || !safeStorage.isEncryptionAvailable()) return '';
+  try { return safeStorage.decryptString(Buffer.from(config.encryptedUrl, 'base64')); } catch { return ''; }
+}
+async function postChatWebhook({ author, channel, text, test = false }) {
+  const config = chatWebhookConfig();
+  if (!config.enabled || !config.encryptedUrl) return { sent: false, disabled: true };
+  const url = validDiscordWebhookUrl(decryptWebhookUrl(config));
+  if (!url) throw new Error('The saved Discord webhook is unavailable. Save it again to reconnect the relay.');
+  const response = await fetch(url + (url.includes('?') ? '&' : '?') + 'wait=false', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'CoreShift Chat', content: test ? '✅ CoreShift Discord chat relay is connected.' : `**${String(author).slice(0, 64)}** · #${String(channel).slice(0, 64)}\n${String(text).slice(0, 1800)}`, allowed_mentions: { parse: [] } })
+  });
+  if (!response.ok) throw new Error('Discord rejected the relay (' + response.status + '). Check that the webhook still exists.');
+  return { sent: true };
 }
 
 async function getSystemStats() {
@@ -113,17 +154,37 @@ function createOverlay() {
   overlayWindow.on('closed', () => { overlayWindow = null; });
   return overlayWindow;
 }
-function createCrosshairOverlay() {
-  if (crosshairWindow && !crosshairWindow.isDestroyed()) return crosshairWindow;
-  const display = screen.getPrimaryDisplay();
+function normalizeCrosshairPreset(value = {}) {
+  const shape = value.shape === 'cross' ? 't' : value.shape;
+  return {
+    name: String(value.name || '').slice(0, 80), shape: ['plus', 'dot', 't', 'ring'].includes(shape) ? shape : 'plus',
+    color: /^#[0-9a-f]{6}$/i.test(String(value.color || '')) ? value.color : '#b7ff35',
+    size: Math.max(6, Math.min(70, Number(value.size) || 28)), thickness: Math.max(1, Math.min(10, Number(value.thickness) || 3)),
+    gap: Math.max(0, Math.min(28, Number(value.gap) || 0)), displayId: String(value.displayId || 'primary')
+  };
+}
+function resolveCrosshairDisplay(displayId) {
+  return screen.getAllDisplays().find(display => String(display.id) === String(displayId)) || screen.getPrimaryDisplay();
+}
+function placeCrosshairOverlay(target, displayId) {
+  const display = resolveCrosshairDisplay(displayId);
+  const size = 220;
+  target.setBounds({ width: size, height: size, x: Math.round(display.bounds.x + display.bounds.width / 2 - size / 2), y: Math.round(display.bounds.y + display.bounds.height / 2 - size / 2) });
+}
+function createCrosshairOverlay(preset = activeCrosshairPreset) {
+  activeCrosshairPreset = normalizeCrosshairPreset(preset);
+  if (crosshairWindow && !crosshairWindow.isDestroyed()) { placeCrosshairOverlay(crosshairWindow, activeCrosshairPreset.displayId); return crosshairWindow; }
+  const display = resolveCrosshairDisplay(activeCrosshairPreset.displayId);
   crosshairWindow = new BrowserWindow({
-    width: 160, height: 160, x: Math.round(display.bounds.x + display.bounds.width / 2 - 80), y: Math.round(display.bounds.y + display.bounds.height / 2 - 80),
+    width: 220, height: 220, x: Math.round(display.bounds.x + display.bounds.width / 2 - 110), y: Math.round(display.bounds.y + display.bounds.height / 2 - 110),
     frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true, resizable: false, focusable: false, hasShadow: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }
   });
   crosshairWindow.setAlwaysOnTop(true, 'screen-saver');
   crosshairWindow.setIgnoreMouseEvents(true);
+  crosshairWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   crosshairWindow.loadFile('crosshair-overlay.html');
+  crosshairWindow.once('ready-to-show', () => { if (!crosshairWindow?.isDestroyed()) { crosshairWindow.showInactive(); crosshairWindow.webContents.send('crosshair:preset', activeCrosshairPreset); } });
   crosshairWindow.on('closed', () => { crosshairWindow = null; });
   return crosshairWindow;
 }
@@ -452,12 +513,41 @@ ipcMain.handle('chat:load', async (_event, channel = 'general') => {
   try { await ensureChatTable(); const [rows] = await dbConnection.query('SELECT id, channel, author, message, created_at FROM chat_messages WHERE channel = ? ORDER BY id DESC LIMIT 100', [channel]); return { success: true, rows: rows.reverse() }; }
   catch (err) { return { success: false, message: err.message }; }
 });
+ipcMain.handle('chat:webhook:get', async () => ({ success: true, config: publicChatWebhookConfig() }));
+ipcMain.handle('chat:webhook:save', async (_event, payload = {}) => {
+  try {
+    requireOwner();
+    const current = chatWebhookConfig();
+    const suppliedUrl = String(payload.webhookUrl || '').trim();
+    const nextUrl = suppliedUrl ? validDiscordWebhookUrl(suppliedUrl) : decryptWebhookUrl(current);
+    if (suppliedUrl && !nextUrl) throw new Error('Paste a valid HTTPS Discord channel webhook URL.');
+    if (payload.enabled && !nextUrl) throw new Error('Save a Discord webhook URL before turning the relay on.');
+    const next = { enabled: Boolean(payload.enabled), encryptedUrl: nextUrl ? encryptWebhookUrl(nextUrl) : '', label: String(payload.label || current.label || '').trim().slice(0, 60) };
+    saveSettings({ ...getSettings(), chatWebhook: next });
+    return { success: true, config: publicChatWebhookConfig(), message: next.enabled ? 'Discord relay saved and enabled.' : 'Discord relay saved but turned off.' };
+  } catch (err) { return { success: false, message: err.message }; }
+});
+ipcMain.handle('chat:webhook:test', async () => {
+  try { requireOwner(); const config = chatWebhookConfig(); if (!config.encryptedUrl) throw new Error('Save a Discord webhook before testing it.'); const saved = config.enabled; if (!saved) saveSettings({ ...getSettings(), chatWebhook: { ...config, enabled: true } }); try { await postChatWebhook({ test: true }); } finally { if (!saved) saveSettings({ ...getSettings(), chatWebhook: { ...config, enabled: false } }); } return { success: true, message: 'Test message sent to ' + (config.label || 'your Discord channel') + '.' }; }
+  catch (err) { return { success: false, message: err.message }; }
+});
+ipcMain.handle('chat:webhook:clear', async () => {
+  try { requireOwner(); saveSettings({ ...getSettings(), chatWebhook: { enabled: false, encryptedUrl: '', label: '' } }); return { success: true, config: publicChatWebhookConfig(), message: 'Discord relay removed from this PC.' }; }
+  catch (err) { return { success: false, message: err.message }; }
+});
 ipcMain.handle('chat:send', async (_event, message) => {
   try {
     if (!activeAccount) throw new Error('Sign in to send messages.');
     await ensureChatTable();
-    await dbConnection.query('INSERT INTO chat_messages (channel, author, message) VALUES (?, ?, ?)', [message.channel || 'general', activeAccount.username, message.text]);
-    return { success: true };
+    const text = String(message?.text || '').trim();
+    if (!text) throw new Error('Write a message first.');
+    if (text.length > 1000) throw new Error('Messages are limited to 1,000 characters.');
+    const channel = String(message?.channel || 'general').replace(/[^a-z0-9-]/gi, '').slice(0, 64) || 'general';
+    await dbConnection.query('INSERT INTO chat_messages (channel, author, message) VALUES (?, ?, ?)', [channel, activeAccount.username, text]);
+    try {
+      const relay = await postChatWebhook({ author: activeAccount.username, channel, text });
+      return { success: true, message: relay.sent ? 'Message sent to CoreShift and Discord.' : 'Message sent to CoreShift.' };
+    } catch (relayError) { return { success: true, message: 'Message saved to CoreShift. Discord relay failed: ' + relayError.message }; }
   } catch (err) { return { success: false, message: err.message }; }
 });
 ipcMain.handle('content:load', async () => {
@@ -498,8 +588,9 @@ ipcMain.handle('crosshair:save', async (_event, preset) => {
   try {
     if (!activeAccount) throw new Error('Sign in to save crosshairs.');
     await ensureCrosshairTable();
-    if (!preset.name?.trim()) throw new Error('Name your crosshair.');
-    await dbConnection.query('INSERT INTO crosshair_presets (username, name, shape, color, size, thickness, gap_size) VALUES (?, ?, ?, ?, ?, ?, ?)', [activeAccount.username, preset.name.trim(), preset.shape, preset.color, Number(preset.size), Number(preset.thickness), Number(preset.gap)]);
+    const normalized = normalizeCrosshairPreset(preset);
+    if (!normalized.name) throw new Error('Name your crosshair.');
+    await dbConnection.query('INSERT INTO crosshair_presets (username, name, shape, color, size, thickness, gap_size) VALUES (?, ?, ?, ?, ?, ?, ?)', [activeAccount.username, normalized.name, normalized.shape, normalized.color, normalized.size, normalized.thickness, normalized.gap]);
     return { success: true, message: 'Crosshair saved to MySQL.' };
   } catch (err) { return { success: false, message: err.message }; }
 });
@@ -588,22 +679,26 @@ ipcMain.handle('overlay:toggle', (_event, enabled) => {
   return Boolean(enabled);
 });
 ipcMain.on('overlay:stats', (_event, stats) => overlayWindow?.webContents.send('overlay:stats', stats));
-ipcMain.handle('crosshair:toggle', (_event, enabled) => {
-  if (enabled) createCrosshairOverlay();
+ipcMain.handle('crosshair:displays', async () => ({ success: true, displays: [{ id: 'primary', label: 'Primary display' }, ...screen.getAllDisplays().filter(display => display.id !== screen.getPrimaryDisplay().id).map((display, index) => ({ id: String(display.id), label: 'Display ' + (index + 2) + ' · ' + display.size.width + '×' + display.size.height }))] }));
+ipcMain.handle('crosshair:toggle', (_event, payload) => {
+  const enabled = typeof payload === 'object' ? Boolean(payload.enabled) : Boolean(payload);
+  if (enabled) createCrosshairOverlay(payload?.preset || activeCrosshairPreset);
   else crosshairWindow?.close();
-  return Boolean(enabled);
+  return enabled;
 });
 ipcMain.on('crosshair:updateOverlay', (_event, preset) => {
-  const target = createCrosshairOverlay();
-  target.webContents.send('crosshair:preset', preset);
-  target.webContents.once('did-finish-load', () => target.webContents.send('crosshair:preset', preset));
+  activeCrosshairPreset = normalizeCrosshairPreset(preset);
+  const target = createCrosshairOverlay(activeCrosshairPreset);
+  placeCrosshairOverlay(target, activeCrosshairPreset.displayId);
+  target.webContents.send('crosshair:preset', activeCrosshairPreset);
+  target.webContents.once('did-finish-load', () => target.webContents.send('crosshair:preset', activeCrosshairPreset));
 });
 ipcMain.handle('crosshair:import', async () => {
   const result = await dialog.showOpenDialog(mainWindow, { properties: ['openFile'], filters: [{ name: 'Crosshair preset', extensions: ['json'] }] });
   if (result.canceled) return { canceled: true };
   try {
     const source = JSON.parse(fs.readFileSync(result.filePaths[0], 'utf8'));
-    const preset = { name: String(source.name || path.basename(result.filePaths[0], '.json')).slice(0, 80), shape: ['plus', 'dot', 'cross'].includes(source.shape) ? source.shape : 'plus', color: /^#[0-9a-f]{6}$/i.test(source.color || '') ? source.color : '#b7ff35', size: Math.min(56, Math.max(8, Number(source.size) || 28)), thickness: Math.min(8, Math.max(1, Number(source.thickness) || 3)), gap: Math.min(20, Math.max(0, Number(source.gap) || 6)) };
+    const preset = normalizeCrosshairPreset({ ...source, name: String(source.name || path.basename(result.filePaths[0], '.json')).slice(0, 80) });
     return { success: true, preset };
   } catch { return { success: false, message: 'That file is not a valid CoreShift crosshair JSON preset.' }; }
 });
