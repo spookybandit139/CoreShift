@@ -24,6 +24,7 @@ function renderMobileControlStatus(status = {}) {
   badge.textContent = status.paired ? 'PAIRED' : (running ? 'ON' : 'OFF');
   $('#mobileControlPairing').hidden = !waitingForPair;
   $('#mobileControlUrl').value = status.url || '';
+  $('#mobileControlQr').src = status.qrDataUrl || '';
   $('#mobileControlAccessCode').value = status.accessCode || '';
   $('#startMobileControlBtn').hidden = running;
   $('#newMobileControlPairingBtn').hidden = !running;
