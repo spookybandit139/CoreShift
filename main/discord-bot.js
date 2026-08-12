@@ -71,9 +71,9 @@ const COMMANDS = [
     .addStringOption(option => option.setName('question').setDescription('Question to ask').setRequired(true).setMaxLength(300))
     .addStringOption(option => option.setName('option1').setDescription('First answer').setRequired(true).setMaxLength(55))
     .addStringOption(option => option.setName('option2').setDescription('Second answer').setRequired(true).setMaxLength(55))
+    .addIntegerOption(option => option.setName('hours').setDescription('How long the poll stays open').setRequired(true).setMinValue(1).setMaxValue(168))
     .addStringOption(option => option.setName('option3').setDescription('Optional third answer').setMaxLength(55))
     .addStringOption(option => option.setName('option4').setDescription('Optional fourth answer').setMaxLength(55))
-    .addIntegerOption(option => option.setName('hours').setDescription('How long the poll stays open').setRequired(true).setMinValue(1).setMaxValue(168))
     .addBooleanOption(option => option.setName('multiple').setDescription('Let members select more than one answer'))),
   guildOnly(new SlashCommandBuilder().setName('announce').setDescription('Post a styled announcement in this channel (Manage Server required)')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)

@@ -1,6 +1,6 @@
 {
   "name": "coreshift",
-  "version": "1.12.5",
+  "version": "1.12.6",
   "description": "CoreShift Game Performance Booster",
   "author": "Spooky",
   "main": "main.js",
@@ -31,6 +31,7 @@
       "!dist-release-1.12.3/**/*",
       "!dist-release-1.12.4/**/*",
       "!dist-release-1.12.5/**/*",
+      "!dist-release-1.12.6/**/*",
       "!.agents/**/*",
       "!.codex/**/*",
       "!.git/**/*",
