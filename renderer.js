@@ -359,11 +359,12 @@ function renderDiscordBotStatus(botStatus = {}) {
   $('#startDiscordBotBtn').disabled = ['connecting', 'registering', 'online'].includes(state);
   $('#stopDiscordBotBtn').disabled = state === 'stopped';
   if (botStatus.sync) {
-    const detail = 'Global ' + botStatus.sync.globalCount + '/' + botStatus.sync.expectedCount + (botStatus.sync.testGuildId ? ' | Test server ' + botStatus.sync.guildCount + '/' + botStatus.sync.expectedCount : '');
+    const instant = botStatus.sync.guildSync ? ' | Instant servers ' + botStatus.sync.guildSync.succeeded + '/' + (botStatus.sync.guildSync.succeeded + botStatus.sync.guildSync.failed) : '';
+    const detail = 'Global ' + botStatus.sync.globalCount + '/' + botStatus.sync.expectedCount + instant + (botStatus.sync.testGuildId ? ' | Test server ' + botStatus.sync.guildCount + '/' + botStatus.sync.expectedCount : '');
     const inspection = $('#discordCommandInspection');
-    const removed = botStatus.sync.cleanup?.commandsRemoved ? ' | Removed ' + botStatus.sync.cleanup.commandsRemoved + ' stale guild command(s)' : '';
-    inspection.textContent = detail + removed + (botStatus.sync.guildError ? ' | ' + botStatus.sync.guildError : '');
-    inspection.className = 'bot-command-inspection ' + (botStatus.sync.globalCount === botStatus.sync.expectedCount ? 'good' : 'bad');
+    const failed = botStatus.sync.guildSync?.failed ? ' | Failed servers ' + botStatus.sync.guildSync.failed : '';
+    inspection.textContent = detail + failed + (botStatus.sync.guildError ? ' | ' + botStatus.sync.guildError : '');
+    inspection.className = 'bot-command-inspection ' + (botStatus.sync.globalCount === botStatus.sync.expectedCount && !botStatus.sync.guildSync?.failed ? 'good' : 'bad');
   }
 }
 function renderDiscordCommandInspection(inspection) {
