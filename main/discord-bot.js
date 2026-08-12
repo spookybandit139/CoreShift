@@ -196,37 +196,25 @@ function registerDiscordBot({ ipcMain, BrowserWindow, app, fs, path, safeStorage
   }
   async function syncCommands(token, config, connectedGuildIds = []) {
     const rest = new REST({ version: '10' }).setToken(token);
-    broadcast({ state: 'registering', message: 'Publishing the complete global command set...' });
+    broadcast({ state: 'registering', message: 'Publishing the complete global command set and instant server copies...' });
     const globalResult = await rest.put(Routes.applicationCommands(APPLICATION_ID), { body: COMMANDS });
-    let guildResult = [];
-    let guildError = '';
-    if (config.testGuildId) {
-      broadcast({ state: 'registering', message: 'Global commands published. Mirroring commands to the test server...' });
-      try {
-        guildResult = await rest.put(Routes.applicationGuildCommands(APPLICATION_ID, config.testGuildId), { body: COMMANDS });
-      } catch (error) { guildError = cleanDiscordError(error); }
-    }
-    const cleanup = { scopesCleared: 0, commandsRemoved: 0, errors: [] };
-    const guildIds = [...new Set(connectedGuildIds.map(String).filter(id => /^\d{16,22}$/.test(id)))];
+    const guildIds = [...new Set([...connectedGuildIds, config.testGuildId].map(String).filter(id => /^\d{16,22}$/.test(id)))];
+    const guildSync = { succeeded: 0, failed: 0, errors: [] };
+    let testGuildResult = [];
     for (const guildId of guildIds) {
-      if (guildId === config.testGuildId) continue;
       try {
-        const route = Routes.applicationGuildCommands(APPLICATION_ID, guildId);
-        const existing = await rest.get(route);
-        if (Array.isArray(existing) && existing.length) {
-          await rest.put(route, { body: [] });
-          cleanup.scopesCleared++;
-          cleanup.commandsRemoved += existing.length;
-        }
-      } catch (error) { cleanup.errors.push(cleanDiscordError(error)); }
+        const result = await rest.put(Routes.applicationGuildCommands(APPLICATION_ID, guildId), { body: COMMANDS });
+        guildSync.succeeded++;
+        if (guildId === config.testGuildId) testGuildResult = result;
+      } catch (error) { guildSync.failed++; guildSync.errors.push({ guildId, message: cleanDiscordError(error) }); }
     }
     const sync = {
       expectedCount: COMMANDS.length,
       globalCount: Array.isArray(globalResult) ? globalResult.length : COMMANDS.length,
-      guildCount: Array.isArray(guildResult) ? guildResult.length : 0,
+      guildCount: Array.isArray(testGuildResult) ? testGuildResult.length : 0,
       testGuildId: config.testGuildId,
-      guildError,
-      cleanup
+      guildSync,
+      guildError: guildSync.errors.find(error => error.guildId === config.testGuildId)?.message || ''
     };
     broadcast({ sync, commandCount: sync.globalCount, message: syncMessage(sync) });
     return sync;
@@ -809,11 +797,11 @@ function formatDuration(milliseconds) {
   return [days ? days + 'd' : '', hours ? hours + 'h' : '', minutes + 'm'].filter(Boolean).join(' ');
 }
 function syncMessage(sync) {
-  const guildPart = sync.testGuildId ? ' Test server: ' + sync.guildCount + '/' + sync.expectedCount + '.' : '';
+  const guildPart = sync.guildSync?.succeeded ? ' Instant server copies: ' + sync.guildSync.succeeded + '/' + (sync.guildSync.succeeded + sync.guildSync.failed) + '.' : '';
+  const testGuildPart = sync.testGuildId ? ' Test server: ' + sync.guildCount + '/' + sync.expectedCount + '.' : '';
   const warning = sync.guildError ? ' Test-server mirror failed: ' + sync.guildError : '';
-  const cleanup = sync.cleanup?.commandsRemoved ? ' Removed ' + sync.cleanup.commandsRemoved + ' stale guild command(s) from ' + sync.cleanup.scopesCleared + ' server scope(s).' : '';
-  const cleanupWarning = sync.cleanup?.errors?.length ? ' Some stale scopes could not be inspected.' : '';
-  return 'Global commands synchronized: ' + sync.globalCount + '/' + sync.expectedCount + '.' + guildPart + cleanup + warning + cleanupWarning;
+  const syncWarning = sync.guildSync?.failed ? ' ' + sync.guildSync.failed + ' server sync(s) failed.' : '';
+  return 'Global commands synchronized: ' + sync.globalCount + '/' + sync.expectedCount + '.' + guildPart + testGuildPart + warning + syncWarning;
 }
 async function safeInteractionError(interaction, error) {
   const content = 'CoreShift command failed: ' + cleanError(error);

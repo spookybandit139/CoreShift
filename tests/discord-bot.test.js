@@ -1,6 +1,8 @@
 'use strict';
 
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const { COMMANDS, COMMAND_NAMES, FORBIDDEN_COMMAND_NAMES, isDestructiveCommandName, ensureBotTables } = require('../main/discord-bot');
 
 async function run() {
@@ -23,6 +25,9 @@ async function run() {
   assert.equal(verification.options[0].name, 'setup', 'Verification must use an explicit setup action.');
   assert.equal(verification.options[0].options.find(option => option.name === 'role')?.required, true, 'Verification setup must require a role.');
   assertRequiredBeforeOptional(COMMANDS);
+  const source = fs.readFileSync(path.join(__dirname, '..', 'main', 'discord-bot.js'), 'utf8');
+  assert.ok(source.includes('Routes.applicationGuildCommands(APPLICATION_ID, guildId), { body: COMMANDS }'), 'Every connected server must receive an instant command copy.');
+  assert.ok(!source.includes('body: []'), 'Sync must not clear server command scopes.');
   for (const forbidden of FORBIDDEN_COMMAND_NAMES) assert.ok(!COMMAND_NAMES.includes(forbidden), 'Unsafe command registered: ' + forbidden);
   for (const variation of ['clearserver', 'clear-server', 'clear_server', 'nuke', 'purge', 'wipe', 'ban-all', 'kick_all', 'eval', 'exec']) {
     assert.equal(isDestructiveCommandName(variation), true, 'Destructive variation was not blocked: ' + variation);

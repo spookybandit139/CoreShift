@@ -229,13 +229,13 @@
           <label class="discord-field">Discord Application ID<input id="discordBotApplicationId" value="1414846841371099156" readonly></label>
           <label class="discord-field token-entry-field">Bot token<input id="discordBotToken" type="password" autocomplete="new-password" spellcheck="false" placeholder="Paste your NEW Discord bot token here"></label>
           <small class="bot-token-warning">Never paste this token into chat, GitHub, screenshots, or MySQL. If it is exposed, reset it before saving.</small>
-          <label class="discord-field">Test Server ID <small>(optional; commands update instantly)</small><input id="discordBotGuildId" inputmode="numeric" maxlength="22" placeholder="Leave empty for global commands"></label>
+          <label class="discord-field">Preferred test server ID <small>(optional; every server the bot is in now receives an instant command copy)</small><input id="discordBotGuildId" inputmode="numeric" maxlength="22" placeholder="Optional — use this to inspect one server"></label>
           <label class="bot-switch"><span><b>Start bot with CoreShift</b><small>Keep the bot online while the owner app is running</small></span><input id="discordBotAutoStart" type="checkbox"><i></i></label>
           <div class="bot-command-actions">
             <button id="saveDiscordBotBtn" type="button" class="primary">Save encrypted token &amp; settings</button>
             <button id="startDiscordBotBtn" type="button" class="outline">Start bot</button>
             <button id="stopDiscordBotBtn" type="button" class="outline">Stop bot</button>
-            <button id="registerDiscordCommandsBtn" type="button" class="outline">Sync safe commands &amp; purge legacy</button>
+            <button id="registerDiscordCommandsBtn" type="button" class="outline">Sync safe commands to all servers</button>
             <button id="inspectDiscordCommandsBtn" type="button" class="outline">Inspect command sync</button>
             <button id="openDiscordBotPortalBtn" type="button" class="outline">Open Bot setup</button>
             <button id="inviteDiscordBotBtn" type="button" class="outline">Invite bot</button>
