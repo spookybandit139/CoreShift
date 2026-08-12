@@ -386,6 +386,11 @@ async function loadDiscordBotControls() {
   $('#discordBotApplicationId').value = result.config.applicationId;
   $('#discordBotGuildId').value = result.config.testGuildId || '';
   $('#discordBotAutoStart').checked = Boolean(result.config.enabled);
+  const autoReplies = result.config.autoReplies || {};
+  $('#discordBotAutoReplies').checked = autoReplies.enabled !== false;
+  $('#discordBotServerName').value = autoReplies.serverName || 'El Rancho';
+  $('#discordBotMentionReply').value = autoReplies.mentionReply || '';
+  $('#discordBotKeywordReplies').value = autoReplies.keywordReplies || '';
   $('#discordBotInviteUrl').value = result.inviteUrl;
   $('#discordBotToken').placeholder = result.config.hasToken ? 'Encrypted token saved - paste only to replace it' : 'Paste the token from Discord Developer Portal';
   const deck = $('#botCommandDeckList');
@@ -398,7 +403,8 @@ async function saveDiscordBotSettings() {
   const result = await window.coreShiftAPI.saveDiscordBotConfig({
     token: $('#discordBotToken').value.trim(),
     enabled: $('#discordBotAutoStart').checked,
-    testGuildId: $('#discordBotGuildId').value.trim()
+    testGuildId: $('#discordBotGuildId').value.trim(),
+    autoReplies: { enabled: $('#discordBotAutoReplies').checked, serverName: $('#discordBotServerName').value.trim(), mentionReply: $('#discordBotMentionReply').value.trim(), keywordReplies: $('#discordBotKeywordReplies').value.trim() }
   });
   if (result.success) {
     $('#discordBotToken').value = '';

@@ -3,7 +3,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const { COMMANDS, COMMAND_NAMES, FORBIDDEN_COMMAND_NAMES, isDestructiveCommandName, ensureBotTables } = require('../main/discord-bot');
+const { COMMANDS, COMMAND_NAMES, PREFIX_COMMANDS, FORBIDDEN_COMMAND_NAMES, isDestructiveCommandName, parsePrefixCommand, ensureBotTables } = require('../main/discord-bot');
 
 async function run() {
   assert.equal(COMMANDS.length, 28);
@@ -32,6 +32,10 @@ async function run() {
   for (const variation of ['clearserver', 'clear-server', 'clear_server', 'nuke', 'purge', 'wipe', 'ban-all', 'kick_all', 'eval', 'exec']) {
     assert.equal(isDestructiveCommandName(variation), true, 'Destructive variation was not blocked: ' + variation);
   }
+  assert.ok(PREFIX_COMMANDS.includes('!serverinvite'));
+  assert.ok(PREFIX_COMMANDS.includes('!lock'));
+  assert.deepEqual(parsePrefixCommand('!announce Server event at 8 PM'), { command: 'announce', arguments: 'Server event at 8 PM' });
+  assert.equal(parsePrefixCommand('/help'), null);
 
   const statements = [];
   await ensureBotTables({ async query(sql) { statements.push(sql); return [[], []]; } });
