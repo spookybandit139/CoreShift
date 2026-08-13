@@ -20,12 +20,12 @@ const CHANNELS = [
 const DEFAULT_CONFIG = Object.freeze({
   autoBoost: false,
   gamePath: '',
-  powerPlan: true,
-  cpuCores: true,
+  powerPlan: false,
+  cpuCores: false,
   cpuIdle: false,
   gameMode: true,
   gameDvr: true,
-  trimRam: true,
+  trimRam: false,
   clearClipboard: false,
   stickyKeys: false,
   searchAssistant: false,
@@ -114,16 +114,6 @@ function registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, syste
     const warnings = [];
     await restoreDisabledOptions(selected, warnings);
 
-    if (selected.powerPlan || selected.cpuCores || selected.cpuIdle) {
-      const powerResult = await applyTemporaryPowerPlan(selected);
-      if (powerResult.success) {
-        if (selected.powerPlan) applied.push('Temporary gaming power plan');
-        if (selected.cpuCores) applied.push('CPU core parking minimized');
-        if (selected.cpuIdle) applied.push('Low-latency CPU idle policy');
-        if (powerResult.warnings?.length) warnings.push(...powerResult.warnings);
-      } else warnings.push(powerResult.message);
-    }
-
     for (const [option, specs] of Object.entries(REGISTRY_OPTIONS)) {
       if (!selected[option]) continue;
       let succeeded = true;
@@ -145,59 +135,18 @@ function registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, syste
       applied.push('Clipboard cleared');
     }
 
-    let ramResult = null;
-    if (selected.trimRam) {
-      ramResult = await cleanRam();
-      if (ramResult.success) applied.push(`RAM trimmed across ${ramResult.processCount} processes`);
-      else warnings.push(ramResult.message);
-    }
-
     session.active = applied.length > 0;
     session.appliedOptions = applied;
     session.itemsOptimized = applied.length;
-    session.releasedBytes = ramResult?.releasedBytes || 0;
-    session.availableGainBytes = ramResult?.availableGainBytes || 0;
-    session.processCount = ramResult?.processCount || 0;
+    session.releasedBytes = 0;
+    session.availableGainBytes = 0;
+    session.processCount = 0;
     session.lastAppliedAt = new Date().toISOString();
     session.lastMessage = warnings.length
       ? `${applied.length} optimizations applied. ${warnings.join(' ')}`
       : `${applied.length} reversible gaming optimizations are active.`;
     if (payload.autoApplied) session.autoApplied = true;
     return { ...publicState(), message: session.lastMessage, warnings };
-  }
-
-  async function applyTemporaryPowerPlan(selected) {
-    if (!session.originalPowerScheme) {
-      const current = await powerCfg(['/getactivescheme']);
-      session.originalPowerScheme = extractGuid(current.stdout);
-      if (!session.originalPowerScheme) return { success: false, message: 'Windows did not report the current power scheme.' };
-    }
-    if (!session.temporaryPowerScheme) {
-      const duplicate = await powerCfg(['/duplicatescheme', session.originalPowerScheme]);
-      session.temporaryPowerScheme = extractGuid(duplicate.stdout);
-      if (duplicate.error || !session.temporaryPowerScheme) return { success: false, message: 'Windows could not create a temporary gaming power scheme.' };
-      await powerCfg(['/changename', session.temporaryPowerScheme, 'CoreShift Gaming Temporary', 'Restored automatically when CoreShift closes']);
-    }
-    const scheme = session.temporaryPowerScheme;
-    const commands = [];
-    if (selected.powerPlan) {
-      commands.push(['/setacvalueindex', scheme, 'SUB_PROCESSOR', 'PROCTHROTTLEMIN', '100']);
-      commands.push(['/setacvalueindex', scheme, 'SUB_PROCESSOR', 'PROCTHROTTLEMAX', '100']);
-    }
-    if (selected.cpuCores) {
-      commands.push(['/setacvalueindex', scheme, 'SUB_PROCESSOR', 'CPMINCORES', '100']);
-      commands.push(['/setacvalueindex', scheme, 'SUB_PROCESSOR', 'CPMAXCORES', '100']);
-    }
-    if (selected.cpuIdle) commands.push(['/setacvalueindex', scheme, 'SUB_PROCESSOR', 'IDLEDISABLE', '1']);
-    const warnings = [];
-    for (const args of commands) {
-      const result = await powerCfg(args);
-      if (result.error) warnings.push(`Windows did not support the power setting ${args[3] || args[2]}.`);
-    }
-    const activated = await powerCfg(['/setactive', scheme]);
-    return activated.error
-      ? { success: false, message: 'Windows could not activate the temporary CoreShift power scheme.' }
-      : { success: true, warnings };
   }
 
   async function restoreDisabledOptions(selected, warnings) {
@@ -212,12 +161,6 @@ function registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, syste
         else warnings.push(result.message);
       }
     }
-    if (!selected.powerPlan && !selected.cpuCores && !selected.cpuIdle && session.temporaryPowerScheme) {
-      if (session.originalPowerScheme) await powerCfg(['/setactive', session.originalPowerScheme]);
-      await powerCfg(['/delete', session.temporaryPowerScheme]);
-      session.temporaryPowerScheme = '';
-      session.originalPowerScheme = '';
-    }
   }
 
   async function restoreBoost({ silent = false } = {}) {
@@ -227,11 +170,6 @@ function registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, syste
       const result = await restoreRegistryValue(spec, backup);
       if (!result.success) errors.push(result.message);
     }
-    if (session.originalPowerScheme) {
-      const restored = await powerCfg(['/setactive', session.originalPowerScheme]);
-      if (restored.error) errors.push('Windows could not restore the previous power scheme.');
-    }
-    if (session.temporaryPowerScheme) await powerCfg(['/delete', session.temporaryPowerScheme]);
     const lastMessage = errors.length ? `Restore finished with ${errors.length} warning(s).` : 'Previous Windows gaming settings were restored.';
     session = { ...freshSession(), lastMessage };
     if (!silent || errors.length) return { ...publicState(), success: errors.length === 0, message: lastMessage, warnings: errors };
@@ -239,29 +177,14 @@ function registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, syste
   }
 
   async function cleanRam() {
-    if (process.platform !== 'win32') return { success: false, message: 'RAM cleanup is only available on Windows.' };
-    const script = [
-      "$ErrorActionPreference='SilentlyContinue'",
-      "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class CoreShiftMemoryTools { [DllImport(\"psapi.dll\")] public static extern bool EmptyWorkingSet(IntPtr h); }'",
-      `$appPid=${process.pid}`,
-      "$protected='^(System|Registry|smss|csrss|wininit|services|lsass|dwm|explorer|audiodg|MsMpEng|CoreShift|electron)$'",
-      "$before=[int64](Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory*1KB",
-      "$released=[int64]0; $count=0",
-      "Get-Process | ForEach-Object { try { if ($_.Id -ne $PID -and $_.Id -ne $appPid -and $_.ProcessName -notmatch $protected) { $old=[int64]$_.WorkingSet64; if ([CoreShiftMemoryTools]::EmptyWorkingSet($_.Handle)) { $_.Refresh(); $delta=[Math]::Max(0,$old-[int64]$_.WorkingSet64); $released+=$delta; $count++ } } } catch {} }",
-      "Start-Sleep -Milliseconds 200",
-      "$after=[int64](Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory*1KB",
-      "[pscustomobject]@{processCount=$count;releasedBytes=$released;availableGainBytes=[Math]::Max(0,$after-$before)} | ConvertTo-Json -Compress"
-    ].join('; ');
-    const result = await powershell(script);
-    if (result.error) return { success: false, processCount: 0, releasedBytes: 0, availableGainBytes: 0, message: 'Windows could not trim background working memory.' };
     try {
-      const parsed = JSON.parse(String(result.stdout || '').trim());
-      const releasedBytes = Math.max(0, Number(parsed.releasedBytes) || 0);
-      const availableGainBytes = Math.max(0, Number(parsed.availableGainBytes) || 0);
-      const processCount = Math.max(0, Number(parsed.processCount) || 0);
-      return { success: true, processCount, releasedBytes, availableGainBytes, message: `Released ${formatBytes(releasedBytes)} of background working memory from ${processCount} processes.` };
+      const memory = await systeminformation.mem();
+      const available = Math.max(0, Number(memory.available) || 0);
+      const total = Math.max(1, Number(memory.total) || 1);
+      const percent = Math.round(available / total * 100);
+      return { success: true, processCount: 0, releasedBytes: 0, availableGainBytes: available, message: `${formatBytes(available)} RAM available (${percent}%). No process memory was forced out, preventing reload stutter.` };
     } catch {
-      return { success: false, processCount: 0, releasedBytes: 0, availableGainBytes: 0, message: 'Windows returned an unreadable RAM cleanup result.' };
+      return { success: false, processCount: 0, releasedBytes: 0, availableGainBytes: 0, message: 'Windows memory headroom could not be measured.' };
     }
   }
 
@@ -297,11 +220,36 @@ function registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, syste
     return { success: true, rows };
   }
 
+  async function migrateLegacyState() {
+    if (process.platform !== 'win32' || getSettings()?.boosterStabilityMigrated) return { success: true, cleaned: 0 };
+    const listed = await runExecutable('powercfg.exe', ['/list']);
+    if (listed.error) return { success: false, cleaned: 0, message: 'Legacy CoreShift power plans could not be inspected.' };
+    const staleGuids = String(listed.stdout || '').split(/\r?\n/)
+      .filter(line => /CoreShift Gaming Temporary/i.test(line))
+      .map(extractGuid).filter(Boolean);
+    let cleaned = 0;
+    if (staleGuids.length) {
+      const active = await runExecutable('powercfg.exe', ['/getactivescheme']);
+      const activeGuid = extractGuid(active.stdout);
+      if (staleGuids.includes(activeGuid)) {
+        const restored = await runExecutable('powercfg.exe', ['/setactive', 'SCHEME_BALANCED']);
+        if (restored.error) return { success: false, cleaned: 0, message: 'Windows could not leave the retired CoreShift power plan.' };
+      }
+      for (const guid of staleGuids) {
+        const removed = await runExecutable('powercfg.exe', ['/delete', guid]);
+        if (!removed.error) cleaned++;
+      }
+    }
+    if (cleaned !== staleGuids.length) return { success: false, cleaned, message: `Removed ${cleaned} of ${staleGuids.length} retired CoreShift power plans. CoreShift will retry later.` };
+    saveSettings({ ...getSettings(), boosterStabilityMigrated: true });
+    return { success: true, cleaned, message: cleaned ? `Removed ${cleaned} retired CoreShift power plan(s).` : 'No retired CoreShift power plans were found.' };
+  }
+
   function configureAutoTimer() {
     if (autoTimer) clearInterval(autoTimer);
     autoTimer = null;
     if (!config.autoBoost || !config.gamePath) return;
-    autoTimer = setInterval(checkAutoBoost, 10000);
+    autoTimer = setInterval(checkAutoBoost, 30000);
     autoTimer.unref?.();
     setTimeout(checkAutoBoost, 1000);
   }
@@ -309,10 +257,8 @@ function registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, syste
   async function checkAutoBoost() {
     try {
       if (!config.autoBoost || !config.gamePath) return;
-      const target = path.basename(config.gamePath, '.exe').toLowerCase();
-      const processes = await systeminformation.processes();
-      const running = (processes.list || []).some(item => String(item.name || '').replace(/\.exe$/i, '').toLowerCase() === target);
-      session.gameDetected = running ? target : '';
+      const running = await isProcessRunning(path.basename(config.gamePath));
+      session.gameDetected = running ? path.basename(config.gamePath, '.exe') : '';
       if (running) {
         autoGameMissingChecks = 0;
         if (!session.active) await applyBoost({ config, save: false, autoApplied: true });
@@ -331,8 +277,6 @@ function registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, syste
         for (const [key, backup] of session.registryBackup) scripts.push(registryRestoreScript(backup.spec || parseRegistryKey(key), backup));
         execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', scripts.join('; ')], { timeout: 6000, windowsHide: true, stdio: 'ignore' });
       }
-      if (session.originalPowerScheme) execFileSync('powercfg.exe', ['/setactive', session.originalPowerScheme], { timeout: 4000, windowsHide: true, stdio: 'ignore' });
-      if (session.temporaryPowerScheme) execFileSync('powercfg.exe', ['/delete', session.temporaryPowerScheme], { timeout: 4000, windowsHide: true, stdio: 'ignore' });
     } catch { /* Windows may already be shutting down. */ }
   }
 
@@ -354,7 +298,7 @@ function registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, syste
     }
     return result;
   });
-  handle('system:boost', () => applyBoost({ config: { ...config, powerPlan: true }, save: false }));
+  handle('system:boost', () => applyBoost({ config: { ...config, gameMode: true, gameDvr: true }, save: false }));
   handle('system:applyFpsOptions', options => applyBoost({ config: { ...config, gameMode: Boolean(options?.gameMode), gameDvr: Boolean(options?.gameDvr), trimRam: Boolean(options?.trimRam), powerPlan: false }, save: false }));
 
   configureAutoTimer();
@@ -362,16 +306,24 @@ function registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, syste
     getState: publicState,
     apply: () => applyBoost({ config, save: false }),
     restore: () => restoreBoost(),
+    migrateLegacyState,
     restoreOnExit,
     dispose() { if (autoTimer) clearInterval(autoTimer); autoTimer = null; }
   };
 
-  function powerCfg(args) {
-    return new Promise(resolve => execFile('powercfg.exe', args, { windowsHide: true }, (error, stdout) => resolve({ error, stdout: stdout || '' })));
-  }
-
   function powershell(script) {
     return new Promise(resolve => execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => resolve({ error, stdout: stdout || '', stderr: stderr || '' })));
+  }
+
+  function runExecutable(file, args) {
+    return new Promise(resolve => execFile(file, args, { windowsHide: true, timeout: 8000 }, (error, stdout, stderr) => resolve({ error, stdout: stdout || '', stderr: stderr || '' })));
+  }
+
+  function isProcessRunning(executable) {
+    return new Promise(resolve => execFile('tasklist.exe', ['/FI', `IMAGENAME eq ${executable}`, '/FO', 'CSV', '/NH'], { windowsHide: true, timeout: 5000 }, (error, stdout) => {
+      if (error) return resolve(false);
+      resolve(String(stdout || '').toLowerCase().includes(`"${String(executable).toLowerCase()}"`));
+    }));
   }
 
   async function readRegistryValue(spec) {
@@ -402,11 +354,14 @@ function sanitizeConfig(input = {}) {
   const gamePath = String(input?.gamePath || '').trim();
   output.gamePath = gamePath.length <= 4096 ? gamePath : '';
   if (!output.gamePath) output.autoBoost = false;
+  // Retire legacy or unrelated tweaks. They either caused heat/page-fault stutter
+  // or changed Windows behavior without providing a measurable gaming benefit.
+  for (const key of ['powerPlan', 'cpuCores', 'cpuIdle', 'trimRam', 'clearClipboard', 'stickyKeys', 'searchAssistant', 'backgroundApps', 'problemReports', 'diagnostics']) output[key] = false;
   return output;
 }
 
 function freshSession() {
-  return { active: false, autoApplied: false, originalPowerScheme: '', temporaryPowerScheme: '', registryBackup: new Map(), appliedOptions: [], itemsOptimized: 0, releasedBytes: 0, availableGainBytes: 0, processCount: 0, gameDetected: '', lastAppliedAt: '', lastMessage: 'No boost is active.' };
+  return { active: false, autoApplied: false, registryBackup: new Map(), appliedOptions: [], itemsOptimized: 0, releasedBytes: 0, availableGainBytes: 0, processCount: 0, gameDetected: '', lastAppliedAt: '', lastMessage: 'No boost is active.' };
 }
 
 function validateGamePath(value) {

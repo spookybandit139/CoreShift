@@ -12,7 +12,10 @@ async function run() {
 
   const defaults = sanitizeConfig();
   assert.deepEqual(defaults, DEFAULT_CONFIG);
+  assert.equal(defaults.powerPlan, false, 'A custom power plan must remain opt-in.');
+  assert.equal(defaults.cpuCores, false, 'Core parking changes are retired.');
   assert.equal(defaults.cpuIdle, false, 'High-heat CPU idle mode must remain opt-in.');
+  assert.equal(defaults.trimRam, false, 'Forced working-set trimming is retired.');
   assert.equal(defaults.problemReports, false, 'Problem reporting changes must remain opt-in.');
 
   const configured = sanitizeConfig({
@@ -26,19 +29,20 @@ async function run() {
   assert.equal(configured.autoBoost, true);
   assert.equal(configured.gamePath, 'C:\\Games\\Example.exe');
   assert.equal(configured.powerPlan, false);
-  assert.equal(configured.cpuIdle, true);
-  assert.equal(configured.clearClipboard, true);
+  assert.equal(configured.cpuIdle, false);
+  assert.equal(configured.clearClipboard, false);
   assert.equal(configured.unknownOption, undefined);
 
   assert.equal(sanitizeConfig({ autoBoost: true, gamePath: '' }).autoBoost, false);
-  assert.equal(sanitizeConfig({ powerPlan: 'yes' }).powerPlan, true, 'Non-boolean input must not override the safe default.');
+  assert.equal(sanitizeConfig({ powerPlan: 'yes' }).powerPlan, false, 'Non-boolean input must not override the safe default.');
   assert.equal(extractGuid('Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e'), '381b4222-f694-41f0-9685-ff5bb260df2e');
   assert.equal(extractGuid('no scheme'), '');
 
   const source = fs.readFileSync(require.resolve('../main/booster-ipc'), 'utf8');
   assert.doesNotMatch(source, /Stop-Process|taskkill|TerminateProcess|Remove-Item\s+-Recurse/i, 'Booster must not terminate apps or recursively delete files.');
+  assert.doesNotMatch(source, /EmptyWorkingSet|PROCTHROTTLEMIN', '100|CPMINCORES|IDLEDISABLE/i, 'Booster must not force working-set eviction or aggressive CPU policies.');
   assert.match(source, /restoreOnExit/);
-  assert.match(source, /temporaryPowerScheme/);
+  assert.doesNotMatch(source, /duplicatescheme|temporaryPowerScheme|setacvalueindex/i, 'Booster must not create or tune custom power plans.');
 
   const handlers = new Map();
   let settings = {};
@@ -62,7 +66,7 @@ async function run() {
   assert.equal(state.session.active, false);
   const saved = await handlers.get('booster:config:save')(null, { ...DEFAULT_CONFIG, clearClipboard: true });
   assert.equal(saved.success, true);
-  assert.equal(settings.booster.clearClipboard, true);
+  assert.equal(settings.booster.clearClipboard, false);
   controller.dispose();
 
   console.log('Booster configuration, safety defaults, IPC surface, and restore tests passed.');

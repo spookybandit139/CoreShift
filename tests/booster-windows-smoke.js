@@ -32,8 +32,6 @@ async function run() {
     assert.ok(cleanup.releasedBytes >= 0);
 
     const config = Object.fromEntries(Object.keys(DEFAULT_CONFIG).map(key => [key, typeof DEFAULT_CONFIG[key] === 'boolean' ? false : '']));
-    config.powerPlan = true;
-    config.cpuCores = true;
     config.gameMode = true;
     const boost = await handlers.get('booster:apply')(null, { config });
     assert.equal(boost.success, true, boost.message);

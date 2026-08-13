@@ -280,9 +280,9 @@
       <article class="booster-result-hero">
         <div class="booster-memory-mark" aria-hidden="true"><i></i></div>
         <div class="booster-result-copy">
-          <small>LAST MEMORY RELEASE</small>
-          <h2>Released memory: <strong id="boostReleasedMemory">0 MB</strong></h2>
-          <span><b id="boostItemsOptimized">0</b> items optimized · <b id="boostProcessesTrimmed">0</b> processes trimmed</span>
+          <small>MEMORY HEADROOM</small>
+          <h2>Available memory: <strong id="boostReleasedMemory">Checking...</strong></h2>
+          <span><b id="boostItemsOptimized">0</b> safe settings active · <b id="boostProcessesTrimmed">0</b> processes disturbed</span>
         </div>
         <label class="booster-auto-switch"><input id="autoBoostToggle" type="checkbox"><i></i><span><b>Auto-Boost</b><small>Activates when your saved game starts</small></span></label>
         <button id="restoreBoostBtn" class="booster-restore" type="button">Restore now</button>
@@ -293,9 +293,9 @@
           <div class="booster-core-ring"><span>FPS</span><strong id="boostState">READY</strong><small>SESSION</small></div>
           <div class="booster-core-actions">
             <button id="boostBtn" class="primary">Apply selected boost</button>
-            <button id="cleanRamOnlyBtn" class="outline">Free background RAM</button>
+            <button id="cleanRamOnlyBtn" class="outline">Check RAM headroom</button>
           </div>
-          <small id="boostStatus">Your selected options are saved locally and remain free to use.</small>
+          <small id="boostStatus">Stability-first mode avoids forced RAM trimming and aggressive CPU settings.</small>
         </article>
 
         <article class="booster-profile-card">
@@ -309,21 +309,11 @@
       <article class="booster-options-card">
         <div class="booster-card-title"><div><small>SAVED OPTIMIZATION PROFILE</small><h3>Gaming session controls</h3></div><span>ALL OPTIONS FREE</span></div>
         <div class="booster-option-grid">
-          <label><span><b>Temporary gaming power plan</b><small>Creates a separate plan and restores your old plan on exit</small></span><input id="powerPlanToggle" data-booster-option="powerPlan" type="checkbox" checked><i></i></label>
-          <label><span><b>Prefer all CPU cores</b><small>Minimizes core parking inside the temporary plan</small></span><input id="cpuCoresToggle" data-booster-option="cpuCores" type="checkbox" checked><i></i></label>
-          <label class="booster-caution"><span><b>Low-latency CPU idle</b><small>Maximum responsiveness, but higher heat and power use</small></span><input id="cpuIdleToggle" data-booster-option="cpuIdle" type="checkbox"><i></i></label>
           <label><span><b>Windows Game Mode</b><small>Enables Windows game-aware scheduling</small></span><input id="gameModeToggle" data-booster-option="gameMode" type="checkbox" checked><i></i></label>
           <label><span><b>Disable Game DVR capture</b><small>Pauses Windows background recording while boosted</small></span><input id="gameDvrToggle" data-booster-option="gameDvr" type="checkbox" checked><i></i></label>
-          <label><span><b>Clean background RAM</b><small>Trims accessible non-system process working sets</small></span><input id="boostRamToggle" data-booster-option="trimRam" type="checkbox" checked><i></i></label>
-          <label><span><b>Clear clipboard</b><small>Removes clipboard contents when boost is applied</small></span><input id="clearClipboardToggle" data-booster-option="clearClipboard" type="checkbox"><i></i></label>
-          <label><span><b>Disable Sticky Keys shortcut</b><small>Stops the five-Shift-key popup during games</small></span><input id="stickyKeysToggle" data-booster-option="stickyKeys" type="checkbox"><i></i></label>
-          <label><span><b>Disable legacy search assistant</b><small>Applies the reversible Cortana policy on older Windows builds</small></span><input id="searchAssistantToggle" data-booster-option="searchAssistant" type="checkbox"><i></i></label>
-          <label><span><b>Restrict background apps</b><small>Pauses supported Store apps until settings are restored</small></span><input id="backgroundAppsToggle" data-booster-option="backgroundApps" type="checkbox"><i></i></label>
-          <label class="booster-caution"><span><b>Pause problem reporting</b><small>Stops Windows Error Reporting during the boosted session</small></span><input id="problemReportsToggle" data-booster-option="problemReports" type="checkbox"><i></i></label>
-          <label><span><b>Reduce diagnostic personalization</b><small>Disables tailored diagnostic experiences for this user</small></span><input id="diagnosticsToggle" data-booster-option="diagnostics" type="checkbox"><i></i></label>
           <label><span><b>Quiet notification toasts</b><small>Prevents notification popups while you play</small></span><input id="quietNotificationsToggle" data-booster-option="quietNotifications" type="checkbox"><i></i></label>
         </div>
-        <div class="booster-safety-note"><b>Reversible by design</b><span>CoreShift backs up every changed registry value, uses a temporary power plan, and restores the previous state with Restore now or when the app closes.</span></div>
+        <div class="booster-safety-note"><b>Stability first</b><span>CoreShift no longer forces a 100% minimum CPU state, disables core parking, empties process memory, or runs a continuous FPS animation loop. Use Restore now to undo active settings.</span></div>
       </article>
 
       <article class="booster-process-card">
@@ -610,10 +600,10 @@ LIMIT 5;</textarea>
         <!-- OVERLAY -->
         <article class="settings">
           <h3>Capture & overlay</h3>
-          <label><span><b>Enable FPS overlay</b><small>Show a small always-on-top frame counter</small></span><input id="overlayToggle" type="checkbox"><i></i></label>
+          <label><span><b>Enable performance overlay</b><small>Show lightweight CPU and memory status</small></span><input id="overlayToggle" type="checkbox"><i></i></label>
           <label><span><b>Enable instant replay</b><small>Keep the last minute ready after capture begins</small></span><input type="checkbox" checked><i></i></label>
-          <button id="cleanRamBtn" class="outline setting-btn">Trim background RAM</button>
-          <small id="ramCleanupStatus">Trims accessible background app working sets.</small>
+          <button id="cleanRamBtn" class="outline setting-btn">Check RAM headroom</button>
+          <small id="ramCleanupStatus">Measures available memory without forcing programs to reload data.</small>
         </article>
 
         <article class="settings appearance-settings">

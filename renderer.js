@@ -157,6 +157,7 @@ async function refreshStats() {
     const network = (stats.network || [])[0];
     $('#monitorNetwork').textContent = network ? ((network.rx_sec || 0) / 1048576).toFixed(2) + ' MB/s' : 'Unavailable';
     $('#monitorAvailable').textContent = stats.mem.available ? (stats.mem.available / 1073741824).toFixed(1) + ' GB' : 'Unavailable';
+    if (settings.overlayEnabled) window.coreShiftAPI.sendOverlayStats({ cpu, ram });
   } catch (error) { $('#osInfo').textContent = error.message; }
 }
 $('#refreshStatsBtn').addEventListener('click', () => { refreshStats(); toast('Telemetry refreshed'); });
@@ -344,7 +345,7 @@ $('#clearChatWebhookBtn').addEventListener('click', async () => { if (!window.co
 
 function applyAdmin(admin) { $('#welcomeTitle').textContent = admin.title || 'Ready to play?'; $('#welcomeDescription').textContent = admin.description || 'Your system is tuned and standing by.'; $('#brandName').innerHTML = escapeHtml(admin.brand || 'CoreShift').replace(/SHIFT$/i, '<span>SHIFT</span>'); }
 $('#saveAdminBtn').addEventListener('click', async () => { const admin = { title: $('#adminTitle').value.trim(), description: $('#adminDescription').value.trim(), brand: $('#adminBrand').value.trim() }; settings = await window.coreShiftAPI.saveSettings({ admin }); applyAdmin(admin); toast('App content saved'); });
-$('#overlayToggle').addEventListener('change', async event => { settings = await window.coreShiftAPI.saveSettings({ overlayEnabled: event.target.checked }); window.coreShiftAPI.toggleOverlay(event.target.checked); });
+$('#overlayToggle').addEventListener('change', async event => { settings = await window.coreShiftAPI.saveSettings({ overlayEnabled: event.target.checked }); window.coreShiftAPI.toggleOverlay(event.target.checked); if (event.target.checked) refreshStats(); });
 $('#saveVirusTotalBtn').addEventListener('click', async () => { settings = await window.coreShiftAPI.saveSettings({ virustotalApiKey: $('#virusTotalKey').value.trim() }); toast('VirusTotal API key saved locally'); });
 function renderDiscordPresenceStatus(status) {
   const node = $('#discordPresenceStatus');
@@ -662,8 +663,6 @@ $('#chooseFileBtn').addEventListener('click', async () => { const result = await
 $('#scanFileBtn').addEventListener('click', async () => { if (!selectedFilePath) return toast('Choose a file first'); const result = await window.coreShiftAPI.scanSecurityFile({ filePath: selectedFilePath, apiKey: settings.virustotalApiKey }); showScanResult(result); if (result.queued) pollAnalysis(result.analysisId); });
 $('#scanUrlForm').addEventListener('submit', async event => { event.preventDefault(); const result = await window.coreShiftAPI.scanSecurityUrl({ url: $('#scanUrl').value.trim(), apiKey: settings.virustotalApiKey }); showScanResult(result); if (result.queued) pollAnalysis(result.analysisId); });
 
-let frames = 0; let fpsTime = performance.now();
-function fpsLoop() { frames++; const now = performance.now(); if (now - fpsTime > 1000) { window.coreShiftAPI.sendOverlayStats({ fps: Math.round(frames * 1000 / (now - fpsTime)), cpu: latestStats.cpu, ram: latestStats.ram }); frames = 0; fpsTime = now; } requestAnimationFrame(fpsLoop); }
 function renderAccount() {
   const profile = $('.profile');
   profile.innerHTML = '<i id="profileInitial">' + escapeHtml((account?.username || 'G').slice(0, 1).toUpperCase()) + '</i><div><b id="profileName">' + escapeHtml(account?.username || 'Guest') + '</b><small id="profileRole">' + escapeHtml(account?.role || 'Sign in to chat') + '</small></div><button id="loginBtn">' + (account ? 'Account' : 'Log in') + '</button>';
@@ -771,7 +770,7 @@ async function initialize() {
   renderUpdateStatus((await window.coreShiftAPI.getUpdateStatus()).status);
   await refreshOnlineStatus();
   setupAccountModal(); setupTermsModal(); setupChannels(); account = (await window.coreShiftAPI.getAccountSession()).account; renderAccount(); renderAdminAudit(); if (!account && settings.termsVersion === TERMS_VERSION) $('#authModal').hidden = false;
-  applyAdmin(admin); refreshStats(); fpsLoop(); if (settings.overlayEnabled) window.coreShiftAPI.toggleOverlay(true);
+  applyAdmin(admin); refreshStats(); if (settings.overlayEnabled) window.coreShiftAPI.toggleOverlay(true);
   if (window.LatencyLab) await window.LatencyLab.init();
   if (window.CoreShiftClipStudio) await window.CoreShiftClipStudio.init();
   if (discordPresence.enabled && discordPresence.clientId) renderDiscordPresenceStatus(await window.coreShiftAPI.connectDiscordPresence(discordPresence));

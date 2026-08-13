@@ -27,7 +27,7 @@
     });
     byId('autoBoostToggle').checked = Boolean(config.autoBoost);
     renderGame(config.gamePath);
-    byId('boostReleasedMemory').textContent = formatBytes(session.releasedBytes || 0);
+    byId('boostReleasedMemory').textContent = session.availableGainBytes ? formatBytes(session.availableGainBytes) : 'Not measured';
     byId('boostItemsOptimized').textContent = String(session.itemsOptimized || 0);
     byId('boostProcessesTrimmed').textContent = String(session.processCount || 0);
     byId('boostState').textContent = session.active ? 'ACTIVE' : 'READY';
@@ -78,13 +78,13 @@
 
   async function cleanRam() {
     if (runtime.busy) return;
-    setBusy(true, 'CLEANING', 'Measuring and trimming background working memory…');
+    setBusy(true, 'CHECKING', 'Measuring RAM headroom without disturbing running programs…');
     try {
       const response = await window.coreShiftAPI.cleanRam();
       if (response?.success) {
-        byId('boostReleasedMemory').textContent = formatBytes(response.releasedBytes || 0);
+        byId('boostReleasedMemory').textContent = formatBytes(response.availableGainBytes || 0);
         byId('boostProcessesTrimmed').textContent = String(response.processCount || 0);
-        byId('boostItemsOptimized').textContent = String(response.processCount ? 1 : 0);
+        byId('boostItemsOptimized').textContent = '0';
       }
       setStatus(response?.message || 'RAM cleanup failed.');
       const settingsStatus = byId('ramCleanupStatus');
