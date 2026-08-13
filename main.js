@@ -300,7 +300,8 @@ async function ensureConsentTable() {
   await dbConnection.query('CREATE TABLE IF NOT EXISTS consent_audit (id INT AUTO_INCREMENT PRIMARY KEY, terms_version VARCHAR(64), local_ip VARCHAR(64), hostname VARCHAR(255), installation_id VARCHAR(64), hardware_id VARCHAR(64), accepted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await boosterController?.migrateLegacyState?.().catch(error => console.error('Legacy booster cleanup failed:', error));
   createWindow();
   globalShortcut.register('CommandOrControl+Shift+S', () => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('clips:saveReplayHotkey');
