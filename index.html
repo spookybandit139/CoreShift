@@ -33,6 +33,7 @@
       <p>RESEARCH WORKSPACE</p>
       <p class="spacer">GAME CONTROL</p>
 <button class="nav-btn active" data-panel="launcher"><i>&#9638;</i>Game Launcher</button>
+      <button class="nav-btn" data-panel="vein"><i>◉</i>VEIN Server</button>
       <button class="nav-btn" data-panel="overview"><i>⌘</i>Overview</button>
       <button class="nav-btn" data-panel="boost"><i>↗</i>FPS Boost</button>
       <button class="nav-btn" data-panel="clips"><i>◉</i>Clips</button>
@@ -151,6 +152,42 @@
         <div class="launcher-page-heading"><small>CORE GUIDE BETA</small><h2>Your local gaming copilot</h2><p>Private, rule-based recommendations using only the telemetry already shown in CoreShift.</p></div>
         <div id="coreGuideCards" class="core-guide-cards"><div class="launcher-empty">Analyzing current system telemetry…</div></div>
       </div>
+    </section>
+
+    <!-- VEIN DEDICATED SERVER PANEL -->
+    <section id="panel-vein" class="panel vein-panel">
+      <div class="heading">
+        <div><p>DEDICATED SERVER CONTROL</p><h1>Host your VEIN world.</h1><small>Install, configure, and control a local VEIN dedicated server on this Windows PC.</small></div>
+        <span id="veinServerBadge" class="vein-badge" data-state="offline">OFFLINE</span>
+      </div>
+      <div class="vein-status-strip"><i></i><div><b id="veinStatusTitle">VEIN server is not configured</b><small id="veinStatusDetail">Choose an install folder and SteamCMD to get started.</small></div><button id="veinOpenFolderBtn" class="outline" type="button">Open files</button></div>
+      <div class="vein-layout">
+        <article class="settings vein-card">
+          <header><div><small>SETUP</small><h3>Server location</h3></div><span>Steam app 2131400</span></header>
+          <label>VEIN server folder<input id="veinInstallPath" readonly placeholder="Choose a folder for the dedicated server"></label>
+          <button id="veinChooseInstallBtn" class="outline" type="button">Choose server folder</button>
+          <label>SteamCMD executable<input id="veinSteamCmdPath" readonly placeholder="Choose steamcmd.exe"></label>
+          <button id="veinChooseSteamCmdBtn" class="outline" type="button">Choose SteamCMD</button>
+          <p class="vein-help">SteamCMD is required only to install or update VEIN. CoreShift never stores a Steam login; it uses Steam's anonymous dedicated-server download.</p>
+          <button id="veinInstallBtn" class="primary" type="button">Install / update VEIN server</button>
+        </article>
+        <article class="settings vein-card">
+          <header><div><small>WORLD SETTINGS</small><h3>Server identity</h3></div><span>Saved in Game.ini</span></header>
+          <form id="veinConfigForm">
+            <label>Server name<input id="veinServerName" maxlength="80" required placeholder="My VEIN Server"></label>
+            <label>Password <input id="veinPassword" type="password" maxlength="80" placeholder="Optional"></label>
+            <div class="vein-two"><label>Max players<input id="veinMaxPlayers" type="number" min="1" max="64" value="16" required></label><label>Game port<input id="veinGamePort" type="number" min="1024" max="65535" value="7777" required></label></div>
+            <div class="vein-two"><label>Query port<input id="veinQueryPort" type="number" min="1024" max="65535" value="7778" required></label><label>Bind IP <input id="veinBindAddress" maxlength="45" placeholder="Optional"></label></div>
+            <label>Admin SteamID64s <textarea id="veinAdminSteamIds" rows="3" placeholder="One 17-digit Steam ID per line"></textarea></label>
+            <button class="primary" type="submit">Save world settings</button>
+          </form>
+        </article>
+      </div>
+      <article class="vein-controls">
+        <div><small>SERVER POWER</small><h3>Dedicated server controls</h3><p id="veinConnectCopy">When running, players on this PC can connect to 127.0.0.1:7777.</p></div>
+        <div><button id="veinStartBtn" class="primary" type="button">Start server</button><button id="veinRestartBtn" class="outline" type="button">Restart</button><button id="veinStopBtn" class="danger" type="button">Stop</button></div>
+      </article>
+      <article class="vein-console"><header><div><small>LIVE OUTPUT</small><h3>Server console</h3></div><button id="veinClearConsoleBtn" class="outline" type="button">Clear view</button></header><pre id="veinConsole">Waiting for VEIN server activity…</pre></article>
     </section>
 
     <!-- OVERVIEW PANEL -->

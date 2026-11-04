@@ -17,6 +17,7 @@ const { registerDiscordBot } = require('./main/discord-bot');
 const { registerIpPrivacy } = require('./main/ip-privacy');
 const { registerBoosterIpc } = require('./main/booster-ipc');
 const { registerGameLibraryIpc } = require('./main/game-library-ipc');
+const { registerVeinServerIpc } = require('./main/vein-server-ipc');
 const { registerMobileControl } = require('./main/mobile-control');
 
 let mainWindow;
@@ -30,6 +31,7 @@ let ipPrivacyController;
 let boosterController;
 let gameLibraryController;
 let mobileControlController;
+let veinServerController;
 const OWNER_USERNAME = 'spookybandit139';
 const DISCORD_APPLICATION_ID = '1414846841371099156';
 const REMEMBERED_SESSION_DAYS = 30;
@@ -342,6 +344,7 @@ registerNetworkIpc({ ipcMain, execFile, systeminformation: si });
 registerClipEditorIpc({ ipcMain, app, fs, path, dialog, getMainWindow: () => mainWindow });
 boosterController = registerBoosterIpc({ ipcMain, dialog, clipboard, execFile, spawn, systeminformation: si, getSettings, saveSettings, getMainWindow: () => mainWindow });
 gameLibraryController = registerGameLibraryIpc({ ipcMain, app, dialog, shell, execFile, spawn, fs, path, getSettings, saveSettings, getMainWindow: () => mainWindow });
+veinServerController = registerVeinServerIpc({ ipcMain, dialog, shell, execFile, spawn, fs, path, getSettings, saveSettings, getMainWindow: () => mainWindow });
 mobileControlController = registerMobileControl({
   ipcMain,
   getPreferredAddress: getPreferredMobileAddress,

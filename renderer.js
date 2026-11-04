@@ -116,9 +116,61 @@ function showPanel(name) {
   if (name === 'pia') window.PIAChannel?.onShow?.().catch(error => toast(error.message));
   if (name === 'latency') window.LatencyLab?.onShow?.();
   if (name === 'ipprivacy') loadIpPrivacyPanel().catch(error => renderIpPrivacyStatus({ state: 'error', message: error.message }));
+  if (name === 'vein') refreshVeinPanel().catch(error => toast(error.message || 'Could not read VEIN server status.'));
 }
 window.coreShiftShowPanel = showPanel;
 window.coreShiftToast = toast;
+
+let veinConsoleLines = [];
+function readVeinConfig() {
+  return {
+    installPath: $('#veinInstallPath').value, steamCmdPath: $('#veinSteamCmdPath').value,
+    serverName: $('#veinServerName').value, password: $('#veinPassword').value,
+    maxPlayers: $('#veinMaxPlayers').value, gamePort: $('#veinGamePort').value,
+    queryPort: $('#veinQueryPort').value, bindAddress: $('#veinBindAddress').value,
+    adminSteamIds: $('#veinAdminSteamIds').value
+  };
+}
+function writeVeinConsole() {
+  const consoleNode = $('#veinConsole');
+  if (!consoleNode) return;
+  consoleNode.textContent = veinConsoleLines.length ? veinConsoleLines.join('\n') : 'Waiting for VEIN server activity…';
+  consoleNode.scrollTop = consoleNode.scrollHeight;
+}
+function renderVeinPanel(status = {}) {
+  const config = status.config || {};
+  $('#veinInstallPath').value = config.installPath || '';
+  $('#veinSteamCmdPath').value = config.steamCmdPath || '';
+  $('#veinServerName').value = config.serverName || 'CoreShift VEIN Server';
+  $('#veinPassword').value = config.password || '';
+  $('#veinMaxPlayers').value = config.maxPlayers || 16;
+  $('#veinGamePort').value = config.gamePort || 7777;
+  $('#veinQueryPort').value = config.queryPort || 7778;
+  $('#veinBindAddress').value = config.bindAddress || '';
+  $('#veinAdminSteamIds').value = config.adminSteamIds || '';
+  const running = Boolean(status.running);
+  const badge = $('#veinServerBadge'); badge.dataset.state = running ? 'running' : 'offline'; badge.textContent = running ? 'RUNNING' : 'OFFLINE';
+  $('#veinStatusTitle').textContent = running ? 'VEIN dedicated server is running' : (status.installed ? 'VEIN server is ready to start' : 'VEIN server is not installed');
+  $('#veinStatusDetail').textContent = status.message || 'Choose an install folder and SteamCMD to get started.';
+  $('#veinStartBtn').disabled = running || !status.installed;
+  $('#veinRestartBtn').disabled = !status.installed;
+  $('#veinStopBtn').disabled = !running;
+  const port = config.gamePort || 7777;
+  $('#veinConnectCopy').textContent = running ? `Running locally. Join from this PC at 127.0.0.1:${port}; friends need your public IP and forwarded UDP ports.` : `When running, players on this PC can connect to 127.0.0.1:${port}.`;
+  if (Array.isArray(status.output)) { veinConsoleLines = status.output; writeVeinConsole(); }
+}
+async function refreshVeinPanel() { renderVeinPanel(await window.coreShiftAPI.getVeinServerStatus()); }
+function veinResult(result) { toast(result?.success ? (result.message || 'VEIN server updated.') : (result?.message || 'VEIN server action failed.')); return result; }
+$('#veinChooseInstallBtn').addEventListener('click', async () => { const result = await window.coreShiftAPI.chooseVeinInstall(); veinResult(result); if (result?.success) refreshVeinPanel(); });
+$('#veinChooseSteamCmdBtn').addEventListener('click', async () => { const result = await window.coreShiftAPI.chooseVeinSteamCmd(); veinResult(result); if (result?.success) refreshVeinPanel(); });
+$('#veinInstallBtn').addEventListener('click', async () => { const button = $('#veinInstallBtn'); button.disabled = true; button.textContent = 'Installing…'; try { veinResult(await window.coreShiftAPI.installVeinServer()); } finally { button.disabled = false; button.textContent = 'Install / update VEIN server'; refreshVeinPanel(); } });
+$('#veinConfigForm').addEventListener('submit', async event => { event.preventDefault(); veinResult(await window.coreShiftAPI.saveVeinServerConfig(readVeinConfig())); refreshVeinPanel(); });
+$('#veinStartBtn').addEventListener('click', async () => { veinResult(await window.coreShiftAPI.startVeinServer()); refreshVeinPanel(); });
+$('#veinStopBtn').addEventListener('click', async () => { veinResult(await window.coreShiftAPI.stopVeinServer()); refreshVeinPanel(); });
+$('#veinRestartBtn').addEventListener('click', async () => { veinResult(await window.coreShiftAPI.restartVeinServer()); refreshVeinPanel(); });
+$('#veinOpenFolderBtn').addEventListener('click', async () => veinResult(await window.coreShiftAPI.openVeinServerFolder()));
+$('#veinClearConsoleBtn').addEventListener('click', () => { veinConsoleLines = []; writeVeinConsole(); });
+window.coreShiftAPI.onVeinServerOutput(line => { veinConsoleLines = [...veinConsoleLines, String(line)].slice(-500); writeVeinConsole(); });
 $$('.nav-btn').forEach(button => button.addEventListener('click', () => showPanel(button.dataset.panel)));
 $$('[data-go]').forEach(button => button.addEventListener('click', () => showPanel(button.dataset.go)));
 $$('[data-top-panel]').forEach(button => button.addEventListener('click', () => {
